@@ -1,6 +1,7 @@
 import { useState } from "react";
 import AuthPage from "./pages/AuthPage";
 import StoreSetup from "./pages/StoreSetup";
+import ProductUpload from "./pages/ProductUpload";
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -14,9 +15,5 @@ export default function App() {
     return <StoreSetup user={user} onStoreCreated={() => setStoreCreated(true)} />;
   }
 
-  return (
-    <div className="min-h-screen bg-[#0F1A14] flex items-center justify-center text-white">
-      <p>Store created! Product upload page coming next.</p>
-    </div>
-  );
+  return <ProductUpload user={user} />;
 }
