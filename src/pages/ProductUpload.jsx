@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Store, ArrowRight, Loader2, CheckCircle2, Upload, Package } from "lucide-react";
+import { Store, ArrowRight, Loader2, CheckCircle2, Upload, Package, Copy, Check, X } from "lucide-react";
 import { supabase } from "../supabaseClient";
 
 export default function ProductUpload({ user }) {
@@ -11,13 +11,16 @@ export default function ProductUpload({ user }) {
   const [price, setPrice] = useState("");
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState("");
-  const [photoFile, setPhotoFile] = useState(null);
-  const [photoPreview, setPhotoPreview] = useState(null);
+  const [photoFiles, setPhotoFiles] = useState([]);
+  const [photoPreviews, setPhotoPreviews] = useState([]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [loadingPage, setLoadingPage] = useState(true);
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  const MAX_PHOTOS = 5;
 
   useEffect(() => {
     loadData();
@@ -47,10 +50,19 @@ export default function ProductUpload({ user }) {
   };
 
   const handlePhotoChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setPhotoFile(file);
-    setPhotoPreview(URL.createObjectURL(file));
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    const combined = [...photoFiles, ...files].slice(0, MAX_PHOTOS);
+    setPhotoFiles(combined);
+    setPhotoPreviews(combined.map((f) => URL.createObjectURL(f)));
+    e.target.value = "";
+  };
+
+  const removePhoto = (index) => {
+    const newFiles = photoFiles.filter((_, i) => i !== index);
+    setPhotoFiles(newFiles);
+    setPhotoPreviews(newFiles.map((f) => URL.createObjectURL(f)));
   };
 
   const resetForm = () => {
@@ -58,9 +70,16 @@ export default function ProductUpload({ user }) {
     setPrice("");
     setDescription("");
     setCategoryId("");
-    setPhotoFile(null);
-    setPhotoPreview(null);
+    setPhotoFiles([]);
+    setPhotoPreviews([]);
     setSuccess(false);
+  };
+
+  const copyStoreLink = () => {
+    const link = `https://shopvora-store.netlify.app/${store?.store_slug}`;
+    navigator.clipboard.writeText(link);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
   };
 
   const handleSubmit = async () => {
@@ -72,15 +91,15 @@ export default function ProductUpload({ user }) {
 
     setLoading(true);
     try {
-      let photoUrl = null;
+      let photoUrls = [];
 
-      if (photoFile) {
-        const fileExt = photoFile.name.split(".").pop();
-        const filePath = `${store.id}/${Date.now()}.${fileExt}`;
+      for (const file of photoFiles) {
+        const fileExt = file.name.split(".").pop();
+        const filePath = `${store.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
           .from("product-images")
-          .upload(filePath, photoFile);
+          .upload(filePath, file);
 
         if (uploadError) throw uploadError;
 
@@ -88,7 +107,7 @@ export default function ProductUpload({ user }) {
           .from("product-images")
           .getPublicUrl(filePath);
 
-        photoUrl = urlData.publicUrl;
+        photoUrls.push(urlData.publicUrl);
       }
 
       const { error: insertError } = await supabase.from("products").insert({
@@ -97,7 +116,8 @@ export default function ProductUpload({ user }) {
         price: Number(price),
         description: description.trim() || null,
         category_id: categoryId || null,
-        photo_url: photoUrl,
+        photo_url: photoUrls[0] || null,
+        photo_urls: photoUrls.length > 0 ? photoUrls : null,
       });
 
       if (insertError) throw insertError;
@@ -122,7 +142,7 @@ export default function ProductUpload({ user }) {
 
   return (
     <div className="min-h-screen bg-[#0F1A14] px-6 py-8 font-sans">
-      <div className="flex items-center gap-2 mb-6">
+      <div className="flex items-center gap-2 mb-4">
         <div className="w-9 h-9 rounded-lg bg-[#3DDC84] flex items-center justify-center">
           <Store size={16} className="text-[#0F1A14]" strokeWidth={2.5} />
         </div>
@@ -132,23 +152,70 @@ export default function ProductUpload({ user }) {
         </div>
       </div>
 
+      <button
+        type="button"
+        onClick={copyStoreLink}
+        className="w-full flex items-center justify-between gap-2 bg-[#16241C] border border-[#22362A] rounded-lg px-3.5 py-2.5 mb-6 hover:border-[#3DDC84] transition-colors"
+      >
+        <span className="text-[#8AA396] text-xs truncate">
+          shopvora-store.netlify.app/{store?.store_slug}
+        </span>
+        <span className="flex items-center gap-1 text-[#3DDC84] text-xs font-medium shrink-0">
+          {linkCopied ? (
+            <>
+              <Check size={14} /> Copied
+            </>
+          ) : (
+            <>
+              <Copy size={14} /> Copy link
+            </>
+          )}
+        </span>
+      </button>
+
       <div className="bg-[#16241C] rounded-2xl p-5 border border-[#22362A] shadow-2xl mb-6">
         <h1 className="text-white text-lg font-semibold mb-4">Add a product</h1>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-[#8AA396] text-xs font-medium mb-1.5">Photo</label>
-            <label className="flex items-center justify-center gap-2 border border-dashed border-[#3A4F42] rounded-lg h-32 cursor-pointer overflow-hidden bg-[#0F1A14]">
-              {photoPreview ? (
-                <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
-              ) : (
+            <label className="block text-[#8AA396] text-xs font-medium mb-1.5">
+              Photos ({photoPreviews.length}/{MAX_PHOTOS})
+            </label>
+
+            {photoPreviews.length > 0 && (
+              <div className="grid grid-cols-3 gap-2 mb-2">
+                {photoPreviews.map((src, i) => (
+                  <div key={i} className="relative w-full h-20 rounded-lg overflow-hidden bg-[#0F1A14] border border-[#22362A]">
+                    <img src={src} alt={`Preview ${i + 1}`} className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => removePhoto(i)}
+                      className="absolute top-1 right-1 bg-black/60 rounded-full p-0.5"
+                    >
+                      <X size={12} className="text-white" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {photoPreviews.length < MAX_PHOTOS && (
+              <label className="flex items-center justify-center gap-2 border border-dashed border-[#3A4F42] rounded-lg h-24 cursor-pointer bg-[#0F1A14]">
                 <div className="flex flex-col items-center gap-1.5 text-[#4A5D51]">
                   <Upload size={20} />
-                  <span className="text-xs">Tap to add a photo</span>
+                  <span className="text-xs">
+                    {photoPreviews.length === 0 ? "Tap to add photos" : "Add another photo"}
+                  </span>
                 </div>
-              )}
-              <input type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
-            </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handlePhotoChange}
+                  className="hidden"
+                />
+              </label>
+            )}
           </div>
 
           <div>
@@ -269,4 +336,4 @@ export default function ProductUpload({ user }) {
       </div>
     </div>
   );
-    }
+      }
