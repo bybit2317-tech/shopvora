@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Store, ArrowRight, Loader2, CheckCircle2, Upload, Package, Copy, Check, X } from "lucide-react";
+import { Store, ArrowRight, Loader2, CheckCircle2, Upload, Package, Copy, Check, X, Pencil, Trash2 } from "lucide-react";
 import { supabase } from "../supabaseClient";
 
 export default function ProductUpload({ user }) {
@@ -7,18 +7,22 @@ export default function ProductUpload({ user }) {
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
 
+  const [editingId, setEditingId] = useState(null);
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [photoFiles, setPhotoFiles] = useState([]);
   const [photoPreviews, setPhotoPreviews] = useState([]);
+  const [existingPhotoUrls, setExistingPhotoUrls] = useState([]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [loadingPage, setLoadingPage] = useState(true);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   const MAX_PHOTOS = 5;
 
@@ -53,26 +57,51 @@ export default function ProductUpload({ user }) {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
-    const combined = [...photoFiles, ...files].slice(0, MAX_PHOTOS);
+    const totalExisting = existingPhotoUrls.length;
+    const room = MAX_PHOTOS - totalExisting - photoFiles.length;
+    const toAdd = files.slice(0, Math.max(room, 0));
+
+    const combined = [...photoFiles, ...toAdd];
     setPhotoFiles(combined);
     setPhotoPreviews(combined.map((f) => URL.createObjectURL(f)));
     e.target.value = "";
   };
 
-  const removePhoto = (index) => {
+  const removeNewPhoto = (index) => {
     const newFiles = photoFiles.filter((_, i) => i !== index);
     setPhotoFiles(newFiles);
     setPhotoPreviews(newFiles.map((f) => URL.createObjectURL(f)));
   };
 
+  const removeExistingPhoto = (index) => {
+    setExistingPhotoUrls(existingPhotoUrls.filter((_, i) => i !== index));
+  };
+
   const resetForm = () => {
+    setEditingId(null);
     setName("");
     setPrice("");
     setDescription("");
     setCategoryId("");
     setPhotoFiles([]);
     setPhotoPreviews([]);
+    setExistingPhotoUrls([]);
     setSuccess(false);
+    setError("");
+  };
+
+  const startEdit = (p) => {
+    setEditingId(p.id);
+    setName(p.name || "");
+    setPrice(p.price != null ? String(p.price) : "");
+    setDescription(p.description || "");
+    setCategoryId(p.category_id || "");
+    setExistingPhotoUrls(p.photo_urls && p.photo_urls.length > 0 ? p.photo_urls : (p.photo_url ? [p.photo_url] : []));
+    setPhotoFiles([]);
+    setPhotoPreviews([]);
+    setSuccess(false);
+    setError("");
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const copyStoreLink = () => {
@@ -91,7 +120,7 @@ export default function ProductUpload({ user }) {
 
     setLoading(true);
     try {
-      let photoUrls = [];
+      let newPhotoUrls = [];
 
       for (const file of photoFiles) {
         const fileExt = file.name.split(".").pop();
@@ -107,20 +136,33 @@ export default function ProductUpload({ user }) {
           .from("product-images")
           .getPublicUrl(filePath);
 
-        photoUrls.push(urlData.publicUrl);
+        newPhotoUrls.push(urlData.publicUrl);
       }
 
-      const { error: insertError } = await supabase.from("products").insert({
-        store_id: store.id,
+      const finalPhotoUrls = [...existingPhotoUrls, ...newPhotoUrls];
+
+      const payload = {
         name: name.trim(),
         price: Number(price),
         description: description.trim() || null,
         category_id: categoryId || null,
-        photo_url: photoUrls[0] || null,
-        photo_urls: photoUrls.length > 0 ? photoUrls : null,
-      });
+        photo_url: finalPhotoUrls[0] || null,
+        photo_urls: finalPhotoUrls.length > 0 ? finalPhotoUrls : null,
+      };
 
-      if (insertError) throw insertError;
+      if (editingId) {
+        const { error: updateError } = await supabase
+          .from("products")
+          .update(payload)
+          .eq("id", editingId);
+        if (updateError) throw updateError;
+      } else {
+        const { error: insertError } = await supabase.from("products").insert({
+          store_id: store.id,
+          ...payload,
+        });
+        if (insertError) throw insertError;
+      }
 
       setSuccess(true);
       resetForm();
@@ -131,6 +173,23 @@ export default function ProductUpload({ user }) {
       setLoading(false);
     }
   };
+
+  const handleDelete = async (id) => {
+    setDeletingId(id);
+    try {
+      const { error: deleteError } = await supabase.from("products").delete().eq("id", id);
+      if (deleteError) throw deleteError;
+      setConfirmDeleteId(null);
+      if (editingId === id) resetForm();
+      loadData();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const totalPhotoCount = existingPhotoUrls.length + photoPreviews.length;
 
   if (loadingPage) {
     return (
@@ -174,22 +233,47 @@ export default function ProductUpload({ user }) {
       </button>
 
       <div className="bg-[#16241C] rounded-2xl p-5 border border-[#22362A] shadow-2xl mb-6">
-        <h1 className="text-white text-lg font-semibold mb-4">Add a product</h1>
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-white text-lg font-semibold">
+            {editingId ? "Edit product" : "Add a product"}
+          </h1>
+          {editingId && (
+            <button
+              type="button"
+              onClick={resetForm}
+              className="text-[#8AA396] text-xs flex items-center gap-1 hover:text-white"
+            >
+              <X size={14} /> Cancel
+            </button>
+          )}
+        </div>
 
         <div className="space-y-4">
           <div>
             <label className="block text-[#8AA396] text-xs font-medium mb-1.5">
-              Photos ({photoPreviews.length}/{MAX_PHOTOS})
+              Photos ({totalPhotoCount}/{MAX_PHOTOS})
             </label>
 
-            {photoPreviews.length > 0 && (
+            {(existingPhotoUrls.length > 0 || photoPreviews.length > 0) && (
               <div className="grid grid-cols-3 gap-2 mb-2">
-                {photoPreviews.map((src, i) => (
-                  <div key={i} className="relative w-full h-20 rounded-lg overflow-hidden bg-[#0F1A14] border border-[#22362A]">
-                    <img src={src} alt={`Preview ${i + 1}`} className="w-full h-full object-cover" />
+                {existingPhotoUrls.map((src, i) => (
+                  <div key={`existing-${i}`} className="relative w-full h-20 rounded-lg overflow-hidden bg-[#0F1A14] border border-[#22362A]">
+                    <img src={src} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
                     <button
                       type="button"
-                      onClick={() => removePhoto(i)}
+                      onClick={() => removeExistingPhoto(i)}
+                      className="absolute top-1 right-1 bg-black/60 rounded-full p-0.5"
+                    >
+                      <X size={12} className="text-white" />
+                    </button>
+                  </div>
+                ))}
+                {photoPreviews.map((src, i) => (
+                  <div key={`new-${i}`} className="relative w-full h-20 rounded-lg overflow-hidden bg-[#0F1A14] border border-[#22362A]">
+                    <img src={src} alt={`New photo ${i + 1}`} className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => removeNewPhoto(i)}
                       className="absolute top-1 right-1 bg-black/60 rounded-full p-0.5"
                     >
                       <X size={12} className="text-white" />
@@ -199,12 +283,12 @@ export default function ProductUpload({ user }) {
               </div>
             )}
 
-            {photoPreviews.length < MAX_PHOTOS && (
+            {totalPhotoCount < MAX_PHOTOS && (
               <label className="flex items-center justify-center gap-2 border border-dashed border-[#3A4F42] rounded-lg h-24 cursor-pointer bg-[#0F1A14]">
                 <div className="flex flex-col items-center gap-1.5 text-[#4A5D51]">
                   <Upload size={20} />
                   <span className="text-xs">
-                    {photoPreviews.length === 0 ? "Tap to add photos" : "Add another photo"}
+                    {totalPhotoCount === 0 ? "Tap to add photos" : "Add another photo"}
                   </span>
                 </div>
                 <input
@@ -277,7 +361,7 @@ export default function ProductUpload({ user }) {
 
           {success && (
             <p className="text-[#3DDC84] text-xs bg-[#16241C] border border-[#22362A] rounded-lg px-3 py-2 flex items-center gap-1.5">
-              <CheckCircle2 size={14} /> Product added to your store
+              <CheckCircle2 size={14} /> {editingId ? "Product updated" : "Product added to your store"}
             </p>
           )}
 
@@ -289,7 +373,7 @@ export default function ProductUpload({ user }) {
           >
             {loading ? <Loader2 size={16} className="animate-spin" /> : (
               <>
-                Add product
+                {editingId ? "Save changes" : "Add product"}
                 <ArrowRight size={16} />
               </>
             )}
@@ -328,6 +412,35 @@ export default function ProductUpload({ user }) {
                   }`}>
                     {p.in_stock ? "In stock" : "Out of stock"}
                   </span>
+
+                  <div className="flex items-center gap-2 mt-2">
+                    <button
+                      type="button"
+                      onClick={() => startEdit(p)}
+                      className="flex-1 flex items-center justify-center gap-1 bg-[#0F1A14] border border-[#22362A] rounded-md py-1.5 text-[10px] text-[#8AA396] hover:border-[#3DDC84] hover:text-[#3DDC84]"
+                    >
+                      <Pencil size={11} /> Edit
+                    </button>
+
+                    {confirmDeleteId === p.id ? (
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(p.id)}
+                        disabled={deletingId === p.id}
+                        className="flex-1 flex items-center justify-center gap-1 bg-[#332020] border border-[#4A2323] rounded-md py-1.5 text-[10px] text-[#FF6B6B] disabled:opacity-60"
+                      >
+                        {deletingId === p.id ? <Loader2 size={11} className="animate-spin" /> : "Confirm?"}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDeleteId(p.id)}
+                        className="flex-1 flex items-center justify-center gap-1 bg-[#0F1A14] border border-[#22362A] rounded-md py-1.5 text-[10px] text-[#8AA396] hover:border-[#FF6B6B] hover:text-[#FF6B6B]"
+                      >
+                        <Trash2 size={11} /> Delete
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
@@ -336,4 +449,4 @@ export default function ProductUpload({ user }) {
       </div>
     </div>
   );
-      }
+}
