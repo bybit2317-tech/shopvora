@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Store, ArrowRight, Loader2, CheckCircle2, Upload, Package, Copy, Check, X, Pencil, Trash2 } from "lucide-react";
+import { Store, ArrowRight, Loader2, CheckCircle2, Upload, Package, Copy, Check, X, Pencil, Trash2, Star } from "lucide-react";
 import { supabase } from "../supabaseClient";
 
 export default function ProductUpload({ user }) {
@@ -23,6 +23,7 @@ export default function ProductUpload({ user }) {
   const [linkCopied, setLinkCopied] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [togglingId, setTogglingId] = useState(null);
 
   const MAX_PHOTOS = 5;
 
@@ -186,6 +187,42 @@ export default function ProductUpload({ user }) {
       setError(err.message);
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const toggleInStock = async (p) => {
+    setTogglingId(p.id);
+    try {
+      const { error: toggleError } = await supabase
+        .from("products")
+        .update({ in_stock: !p.in_stock })
+        .eq("id", p.id);
+      if (toggleError) throw toggleError;
+      setProducts((prev) =>
+        prev.map((item) => (item.id === p.id ? { ...item, in_stock: !p.in_stock } : item))
+      );
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
+  const toggleFeatured = async (p) => {
+    setTogglingId(p.id);
+    try {
+      const { error: featError } = await supabase
+        .from("products")
+        .update({ featured: !p.featured })
+        .eq("id", p.id);
+      if (featError) throw featError;
+      setProducts((prev) =>
+        prev.map((item) => (item.id === p.id ? { ...item, featured: !p.featured } : item))
+      );
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setTogglingId(null);
     }
   };
 
@@ -394,7 +431,22 @@ export default function ProductUpload({ user }) {
         ) : (
           <div className="grid grid-cols-2 gap-3">
             {products.map((p) => (
-              <div key={p.id} className="bg-[#16241C] border border-[#22362A] rounded-xl overflow-hidden">
+              <div key={p.id} className="bg-[#16241C] border border-[#22362A] rounded-xl overflow-hidden relative">
+                <button
+                  type="button"
+                  onClick={() => toggleFeatured(p)}
+                  disabled={togglingId === p.id}
+                  className={`absolute top-1.5 right-1.5 z-10 rounded-full p-1.5 ${
+                    p.featured ? "bg-[#3DDC84]" : "bg-black/50"
+                  }`}
+                >
+                  <Star
+                    size={13}
+                    className={p.featured ? "text-[#0F1A14]" : "text-white"}
+                    fill={p.featured ? "#0F1A14" : "none"}
+                  />
+                </button>
+
                 <div className="w-full h-28 bg-[#0F1A14] flex items-center justify-center">
                   {p.photo_url ? (
                     <img src={p.photo_url} alt={p.name} className="w-full h-full object-cover" />
@@ -407,11 +459,17 @@ export default function ProductUpload({ user }) {
                   <p className="text-[#3DDC84] text-xs font-semibold mt-0.5">
                     ₦{Number(p.price).toLocaleString()}
                   </p>
-                  <span className={`inline-block mt-1.5 text-[10px] px-1.5 py-0.5 rounded ${
-                    p.in_stock ? "bg-[#1B3324] text-[#3DDC84]" : "bg-[#332020] text-[#FF6B6B]"
-                  }`}>
-                    {p.in_stock ? "In stock" : "Out of stock"}
-                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => toggleInStock(p)}
+                    disabled={togglingId === p.id}
+                    className={`inline-block mt-1.5 text-[10px] px-1.5 py-0.5 rounded ${
+                      p.in_stock ? "bg-[#1B3324] text-[#3DDC84]" : "bg-[#332020] text-[#FF6B6B]"
+                    }`}
+                  >
+                    {togglingId === p.id ? "..." : p.in_stock ? "In stock" : "Out of stock"}
+                  </button>
 
                   <div className="flex items-center gap-2 mt-2">
                     <button
@@ -449,4 +507,4 @@ export default function ProductUpload({ user }) {
       </div>
     </div>
   );
-}
+      }
