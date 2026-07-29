@@ -3,13 +3,21 @@ import { supabase } from "./supabaseClient";
 import AuthPage from "./pages/AuthPage";
 import StoreSetup from "./pages/StoreSetup";
 import ProductUpload from "./pages/ProductUpload";
+import StorePage from "./pages/StorePage";
 
 export default function App() {
   const [user, setUser] = useState(null);
   const [storeCreated, setStoreCreated] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
+  const [storeSlug, setStoreSlug] = useState(null);
 
   useEffect(() => {
+    const path = window.location.pathname.replace(/^\/+|\/+$/g, "");
+    if (path.length > 0) {
+      setStoreSlug(path);
+      setCheckingSession(false);
+      return;
+    }
     checkExistingSession();
   }, []);
 
@@ -42,6 +50,10 @@ export default function App() {
     return <div className="min-h-screen bg-[#0F1A14]" />;
   }
 
+  if (storeSlug) {
+    return <StorePage slug={storeSlug} />;
+  }
+
   if (!user) {
     return <AuthPage onLoggedIn={handleLoggedIn} />;
   }
@@ -51,4 +63,4 @@ export default function App() {
   }
 
   return <ProductUpload user={user} />;
-           }
+      }
