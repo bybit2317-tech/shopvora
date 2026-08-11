@@ -84,6 +84,7 @@ function ProductPhotos({ product, onOpenFullscreen }) {
 export default function StorePage({ slug }) {
   const [store, setStore] = useState(null);
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [cart, setCart] = useState([]);
@@ -91,6 +92,7 @@ export default function StorePage({ slug }) {
   const [fullscreenPhotos, setFullscreenPhotos] = useState(null);
   const [fullscreenIndex, setFullscreenIndex] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeCategory, setActiveCategory] = useState("all");
 
   useEffect(() => {
     loadStore();
@@ -120,6 +122,10 @@ export default function StorePage({ slug }) {
       .order("created_at", { ascending: false });
 
     setProducts(prodData || []);
+
+    const { data: catData } = await supabase.from("categories").select("*").order("name");
+    setCategories(catData || []);
+
     setLoading(false);
   };
 
@@ -191,9 +197,14 @@ export default function StorePage({ slug }) {
     window.open(url, "_blank");
   };
 
-  const filteredProducts = products.filter((p) =>
-    p.name.toLowerCase().includes(searchTerm.trim().toLowerCase())
-  );
+  const usedCategoryIds = [...new Set(products.map((p) => p.category_id).filter(Boolean))];
+  const availableCategories = categories.filter((c) => usedCategoryIds.includes(c.id));
+
+  const filteredProducts = products.filter((p) => {
+    const matchesSearch = p.name.toLowerCase().includes(searchTerm.trim().toLowerCase());
+    const matchesCategory = activeCategory === "all" || p.category_id === activeCategory;
+    return matchesSearch && matchesCategory;
+  });
 
   if (loading) {
     return (
@@ -233,7 +244,7 @@ export default function StorePage({ slug }) {
         <p className="text-[#8AA396] text-sm mt-3 mb-4 leading-relaxed">{store.description}</p>
       )}
 
-      <div className="relative mb-6">
+      <div className="relative mb-4">
         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#4A5D51]" />
         <input
           type="text"
@@ -254,15 +265,47 @@ export default function StorePage({ slug }) {
         )}
       </div>
 
+      {availableCategories.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto mb-6 pb-1 -mx-6 px-6">
+          <button
+            type="button"
+            onClick={() => setActiveCategory("all")}
+            className={`shrink-0 text-xs font-medium px-3 py-1.5 rounded-full border ${
+              activeCategory === "all"
+                ? "bg-[#3DDC84] text-[#0F1A14] border-[#3DDC84]"
+                : "bg-[#16241C] text-[#8AA396] border-[#22362A]"
+            }`}
+          >
+            All
+          </button>
+          {availableCategories.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => setActiveCategory(c.id)}
+              className={`shrink-0 text-xs font-medium px-3 py-1.5 rounded-full border ${
+                activeCategory === c.id
+                  ? "bg-[#3DDC84] text-[#0F1A14] border-[#3DDC84]"
+                  : "bg-[#16241C] text-[#8AA396] border-[#22362A]"
+              }`}
+            >
+              {c.name}
+            </button>
+          ))}
+        </div>
+      )}
+
       <h2 className="text-[#8AA396] text-xs font-medium uppercase tracking-wide mb-3 mt-2">
-        {searchTerm ? `Results (${filteredProducts.length})` : `Products (${products.length})`}
+        {searchTerm || activeCategory !== "all"
+          ? `Results (${filteredProducts.length})`
+          : `Products (${products.length})`}
       </h2>
 
       {filteredProducts.length === 0 ? (
         <div className="text-center py-14 border border-dashed border-[#22362A] rounded-xl">
           <Package size={24} className="text-[#4A5D51] mx-auto mb-2" />
           <p className="text-[#4A5D51] text-sm">
-            {searchTerm ? `No products match "${searchTerm}".` : "No products yet."}
+            {searchTerm ? `No products match "${searchTerm}".` : "No products in this category."}
           </p>
         </div>
       ) : (
@@ -452,4 +495,4 @@ export default function StorePage({ slug }) {
       )}
     </div>
   );
-}
+      }
