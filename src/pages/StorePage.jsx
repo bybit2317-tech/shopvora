@@ -1,6 +1,82 @@
 import { useState, useEffect } from "react";
-import { Store, Package, Loader2, Plus, Minus, Check, ShoppingCart, X, Trash2, MessageCircle } from "lucide-react";
+import { Store, Package, Loader2, Plus, Minus, Check, ShoppingCart, X, Trash2, MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "../supabaseClient";
+
+function ProductPhotos({ product }) {
+  const photos = product.photo_urls && product.photo_urls.length > 0
+    ? product.photo_urls
+    : (product.photo_url ? [product.photo_url] : []);
+
+  const [index, setIndex] = useState(0);
+
+  const prevPhoto = (e) => {
+    e.stopPropagation();
+    setIndex((i) => (i === 0 ? photos.length - 1 : i - 1));
+  };
+
+  const nextPhoto = (e) => {
+    e.stopPropagation();
+    setIndex((i) => (i === photos.length - 1 ? 0 : i + 1));
+  };
+
+  if (photos.length === 0) {
+    return (
+      <div className="w-full h-32 bg-[#0F1A14] flex items-center justify-center">
+        <Package size={20} className="text-[#4A5D51]" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative w-full h-32 bg-[#0F1A14]">
+      <img
+        src={photos[index]}
+        alt={product.name}
+        className={`w-full h-full object-cover ${!product.in_stock ? "opacity-40" : ""}`}
+      />
+
+      {photos.length > 1 && (
+        <>
+          <button
+            type="button"
+            onClick={prevPhoto}
+            className="absolute left-1 top-1/2 -translate-y-1/2 bg-black/50 rounded-full p-0.5"
+          >
+            <ChevronLeft size={14} className="text-white" />
+          </button>
+          <button
+            type="button"
+            onClick={nextPhoto}
+            className="absolute right-1 top-1/2 -translate-y-1/2 bg-black/50 rounded-full p-0.5"
+          >
+            <ChevronRight size={14} className="text-white" />
+          </button>
+          <div className="absolute bottom-1.5 left-0 right-0 flex items-center justify-center gap-1">
+            {photos.map((_, i) => (
+              <span
+                key={i}
+                className={`w-1.5 h-1.5 rounded-full ${i === index ? "bg-white" : "bg-white/40"}`}
+              />
+            ))}
+          </div>
+        </>
+      )}
+
+      {!product.in_stock && (
+        <span className="absolute inset-0 flex items-center justify-center">
+          <span className="bg-black/70 text-white text-[10px] px-2 py-1 rounded">
+            Out of stock
+          </span>
+        </span>
+      )}
+      {product.featured && product.in_stock && (
+        <span className="absolute top-1.5 left-1.5 bg-[#3DDC84] text-[#0F1A14] text-[9px] font-semibold px-1.5 py-0.5 rounded">
+          Featured
+        </span>
+      )}
+    </div>
+  );
+}
 
 export default function StorePage({ slug }) {
   const [store, setStore] = useState(null);
@@ -150,29 +226,8 @@ export default function StorePage({ slug }) {
                   p.featured ? "border-[#3DDC84]" : "border-[#22362A]"
                 }`}
               >
-                <div className="w-full h-32 bg-[#0F1A14] flex items-center justify-center relative">
-                  {p.photo_url ? (
-                    <img
-                      src={p.photo_url}
-                      alt={p.name}
-                      className={`w-full h-full object-cover ${!p.in_stock ? "opacity-40" : ""}`}
-                    />
-                  ) : (
-                    <Package size={20} className="text-[#4A5D51]" />
-                  )}
-                  {!p.in_stock && (
-                    <span className="absolute inset-0 flex items-center justify-center">
-                      <span className="bg-black/70 text-white text-[10px] px-2 py-1 rounded">
-                        Out of stock
-                      </span>
-                    </span>
-                  )}
-                  {p.featured && p.in_stock && (
-                    <span className="absolute top-1.5 left-1.5 bg-[#3DDC84] text-[#0F1A14] text-[9px] font-semibold px-1.5 py-0.5 rounded">
-                      Featured
-                    </span>
-                  )}
-                </div>
+                <ProductPhotos product={p} />
+
                 <div className="p-2.5">
                   <p className="text-white text-xs font-medium truncate">{p.name}</p>
                   <p className="text-[#3DDC84] text-xs font-semibold mt-0.5">
@@ -302,4 +357,4 @@ export default function StorePage({ slug }) {
       )}
     </div>
   );
-        }
+}
