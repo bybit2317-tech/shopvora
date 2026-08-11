@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Store, Package, Loader2, Plus, Check, ShoppingCart } from "lucide-react";
+import { Store, Package, Loader2, Plus, Minus, Check, ShoppingCart, X, Trash2 } from "lucide-react";
 import { supabase } from "../supabaseClient";
 
 export default function StorePage({ slug }) {
@@ -8,6 +8,7 @@ export default function StorePage({ slug }) {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [cart, setCart] = useState([]);
+  const [showCart, setShowCart] = useState(false);
 
   useEffect(() => {
     loadStore();
@@ -52,7 +53,26 @@ export default function StorePage({ slug }) {
     });
   };
 
+  const increaseQty = (id) => {
+    setCart((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, qty: item.qty + 1 } : item))
+    );
+  };
+
+  const decreaseQty = (id) => {
+    setCart((prev) =>
+      prev
+        .map((item) => (item.id === id ? { ...item, qty: item.qty - 1 } : item))
+        .filter((item) => item.qty > 0)
+    );
+  };
+
+  const removeFromCart = (id) => {
+    setCart((prev) => prev.filter((item) => item.id !== id));
+  };
+
   const cartCount = cart.reduce((sum, item) => sum + item.qty, 0);
+  const cartTotal = cart.reduce((sum, item) => sum + item.qty * item.price, 0);
 
   if (loading) {
     return (
@@ -172,15 +192,94 @@ export default function StorePage({ slug }) {
         </div>
       )}
 
-      {cartCount > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-[#16241C] border-t border-[#22362A] px-6 py-3 flex items-center justify-between">
+      {cartCount > 0 && !showCart && (
+        <button
+          type="button"
+          onClick={() => setShowCart(true)}
+          className="fixed bottom-0 left-0 right-0 bg-[#16241C] border-t border-[#22362A] px-6 py-3 flex items-center justify-between"
+        >
           <div className="flex items-center gap-2 text-white text-sm">
             <ShoppingCart size={18} className="text-[#3DDC84]" />
             <span>{cartCount} item{cartCount > 1 ? "s" : ""} in cart</span>
           </div>
-          <span className="text-[#3DDC84] text-xs font-medium">Tap to review (next step)</span>
+          <span className="text-[#3DDC84] text-xs font-medium">
+            ₦{cartTotal.toLocaleString()} · Review
+          </span>
+        </button>
+      )}
+
+      {showCart && (
+        <div className="fixed inset-0 bg-black/70 flex items-end z-50">
+          <div className="bg-[#16241C] w-full rounded-t-2xl border-t border-[#22362A] max-h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#22362A]">
+              <h2 className="text-white font-semibold text-base">Your order</h2>
+              <button type="button" onClick={() => setShowCart(false)}>
+                <X size={20} className="text-[#8AA396]" />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto px-5 py-3 flex-1">
+              {cart.length === 0 ? (
+                <p className="text-[#4A5D51] text-sm text-center py-8">Your cart is empty.</p>
+              ) : (
+                <div className="space-y-3">
+                  {cart.map((item) => (
+                    <div key={item.id} className="flex items-center justify-between gap-2 border-b border-[#22362A] pb-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white text-sm font-medium truncate">{item.name}</p>
+                        <p className="text-[#3DDC84] text-xs mt-0.5">
+                          ₦{Number(item.price).toLocaleString()} each
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => decreaseQty(item.id)}
+                          className="w-6 h-6 flex items-center justify-center bg-[#0F1A14] border border-[#22362A] rounded text-[#8AA396]"
+                        >
+                          <Minus size={12} />
+                        </button>
+                        <span className="text-white text-sm w-4 text-center">{item.qty}</span>
+                        <button
+                          type="button"
+                          onClick={() => increaseQty(item.id)}
+                          className="w-6 h-6 flex items-center justify-center bg-[#0F1A14] border border-[#22362A] rounded text-[#8AA396]"
+                        >
+                          <Plus size={12} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeFromCart(item.id)}
+                          className="ml-1 text-[#FF6B6B]"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {cart.length > 0 && (
+              <div className="px-5 py-4 border-t border-[#22362A]">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[#8AA396] text-sm">Total</span>
+                  <span className="text-white font-semibold text-base">
+                    ₦{cartTotal.toLocaleString()}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="w-full bg-[#3DDC84] hover:bg-[#34C476] transition-colors text-[#0F1A14] font-semibold text-sm rounded-lg py-3"
+                >
+                  Send Order on WhatsApp (next step)
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
   );
-}
+  }
