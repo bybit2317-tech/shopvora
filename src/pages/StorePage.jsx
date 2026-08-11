@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Store, Package, Loader2 } from "lucide-react";
+import { Store, Package, Loader2, Plus, Check, ShoppingCart } from "lucide-react";
 import { supabase } from "../supabaseClient";
 
 export default function StorePage({ slug }) {
@@ -7,6 +7,7 @@ export default function StorePage({ slug }) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [cart, setCart] = useState([]);
 
   useEffect(() => {
     loadStore();
@@ -39,6 +40,20 @@ export default function StorePage({ slug }) {
     setLoading(false);
   };
 
+  const addToCart = (product) => {
+    setCart((prev) => {
+      const existing = prev.find((item) => item.id === product.id);
+      if (existing) {
+        return prev.map((item) =>
+          item.id === product.id ? { ...item, qty: item.qty + 1 } : item
+        );
+      }
+      return [...prev, { id: product.id, name: product.name, price: product.price, qty: 1 }];
+    });
+  };
+
+  const cartCount = cart.reduce((sum, item) => sum + item.qty, 0);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0F1A14] flex items-center justify-center">
@@ -58,7 +73,7 @@ export default function StorePage({ slug }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#0F1A14] px-6 py-8 font-sans">
+    <div className="min-h-screen bg-[#0F1A14] px-6 py-8 font-sans pb-24">
       <div className="flex items-center gap-3 mb-2">
         <div className="w-11 h-11 rounded-lg bg-[#3DDC84] flex items-center justify-center shrink-0">
           <Store size={20} className="text-[#0F1A14]" strokeWidth={2.5} />
@@ -88,49 +103,84 @@ export default function StorePage({ slug }) {
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3">
-          {products.map((p) => (
-            <div
-              key={p.id}
-              className={`bg-[#16241C] border rounded-xl overflow-hidden ${
-                p.featured ? "border-[#3DDC84]" : "border-[#22362A]"
-              }`}
-            >
-              <div className="w-full h-32 bg-[#0F1A14] flex items-center justify-center relative">
-                {p.photo_url ? (
-                  <img
-                    src={p.photo_url}
-                    alt={p.name}
-                    className={`w-full h-full object-cover ${!p.in_stock ? "opacity-40" : ""}`}
-                  />
-                ) : (
-                  <Package size={20} className="text-[#4A5D51]" />
-                )}
-                {!p.in_stock && (
-                  <span className="absolute inset-0 flex items-center justify-center">
-                    <span className="bg-black/70 text-white text-[10px] px-2 py-1 rounded">
-                      Out of stock
+          {products.map((p) => {
+            const inCart = cart.find((item) => item.id === p.id);
+            return (
+              <div
+                key={p.id}
+                className={`bg-[#16241C] border rounded-xl overflow-hidden ${
+                  p.featured ? "border-[#3DDC84]" : "border-[#22362A]"
+                }`}
+              >
+                <div className="w-full h-32 bg-[#0F1A14] flex items-center justify-center relative">
+                  {p.photo_url ? (
+                    <img
+                      src={p.photo_url}
+                      alt={p.name}
+                      className={`w-full h-full object-cover ${!p.in_stock ? "opacity-40" : ""}`}
+                    />
+                  ) : (
+                    <Package size={20} className="text-[#4A5D51]" />
+                  )}
+                  {!p.in_stock && (
+                    <span className="absolute inset-0 flex items-center justify-center">
+                      <span className="bg-black/70 text-white text-[10px] px-2 py-1 rounded">
+                        Out of stock
+                      </span>
                     </span>
-                  </span>
-                )}
-                {p.featured && p.in_stock && (
-                  <span className="absolute top-1.5 left-1.5 bg-[#3DDC84] text-[#0F1A14] text-[9px] font-semibold px-1.5 py-0.5 rounded">
-                    Featured
-                  </span>
-                )}
+                  )}
+                  {p.featured && p.in_stock && (
+                    <span className="absolute top-1.5 left-1.5 bg-[#3DDC84] text-[#0F1A14] text-[9px] font-semibold px-1.5 py-0.5 rounded">
+                      Featured
+                    </span>
+                  )}
+                </div>
+                <div className="p-2.5">
+                  <p className="text-white text-xs font-medium truncate">{p.name}</p>
+                  <p className="text-[#3DDC84] text-xs font-semibold mt-0.5">
+                    ₦{Number(p.price).toLocaleString()}
+                  </p>
+                  {p.description && (
+                    <p className="text-[#4A5D51] text-[10px] mt-1 line-clamp-2">{p.description}</p>
+                  )}
+
+                  {p.in_stock && (
+                    <button
+                      type="button"
+                      onClick={() => addToCart(p)}
+                      className={`w-full mt-2 flex items-center justify-center gap-1 rounded-md py-1.5 text-[10px] font-medium ${
+                        inCart
+                          ? "bg-[#1B3324] text-[#3DDC84] border border-[#3DDC84]"
+                          : "bg-[#0F1A14] text-[#8AA396] border border-[#22362A]"
+                      }`}
+                    >
+                      {inCart ? (
+                        <>
+                          <Check size={11} /> In cart ({inCart.qty})
+                        </>
+                      ) : (
+                        <>
+                          <Plus size={11} /> Add to cart
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
               </div>
-              <div className="p-2.5">
-                <p className="text-white text-xs font-medium truncate">{p.name}</p>
-                <p className="text-[#3DDC84] text-xs font-semibold mt-0.5">
-                  ₦{Number(p.price).toLocaleString()}
-                </p>
-                {p.description && (
-                  <p className="text-[#4A5D51] text-[10px] mt-1 line-clamp-2">{p.description}</p>
-                )}
-              </div>
-            </div>
-          ))}
+            );
+          })}
+        </div>
+      )}
+
+      {cartCount > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 bg-[#16241C] border-t border-[#22362A] px-6 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-white text-sm">
+            <ShoppingCart size={18} className="text-[#3DDC84]" />
+            <span>{cartCount} item{cartCount > 1 ? "s" : ""} in cart</span>
+          </div>
+          <span className="text-[#3DDC84] text-xs font-medium">Tap to review (next step)</span>
         </div>
       )}
     </div>
   );
-      }
+}
