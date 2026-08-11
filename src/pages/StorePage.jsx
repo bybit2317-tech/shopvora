@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Store, Package, Loader2, Plus, Minus, Check, ShoppingCart, X, Trash2, MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { Store, Package, Loader2, Plus, Minus, Check, ShoppingCart, X, Trash2, MessageCircle, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { supabase } from "../supabaseClient";
 
 function ProductPhotos({ product, onOpenFullscreen }) {
@@ -90,6 +90,7 @@ export default function StorePage({ slug }) {
   const [showCart, setShowCart] = useState(false);
   const [fullscreenPhotos, setFullscreenPhotos] = useState(null);
   const [fullscreenIndex, setFullscreenIndex] = useState(0);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     loadStore();
@@ -190,6 +191,10 @@ export default function StorePage({ slug }) {
     window.open(url, "_blank");
   };
 
+  const filteredProducts = products.filter((p) =>
+    p.name.toLowerCase().includes(searchTerm.trim().toLowerCase())
+  );
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0F1A14] flex items-center justify-center">
@@ -225,21 +230,44 @@ export default function StorePage({ slug }) {
       </div>
 
       {store.description && (
-        <p className="text-[#8AA396] text-sm mt-3 mb-6 leading-relaxed">{store.description}</p>
+        <p className="text-[#8AA396] text-sm mt-3 mb-4 leading-relaxed">{store.description}</p>
       )}
 
+      <div className="relative mb-6">
+        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#4A5D51]" />
+        <input
+          type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search products in this store"
+          style={{ color: "#FFFFFF", backgroundColor: "#16241C" }}
+          className="w-full border border-[#22362A] rounded-lg pl-9 pr-9 py-2.5 text-sm placeholder-[#4A5D51] focus:outline-none focus:ring-2 focus:ring-[#3DDC84] focus:border-transparent"
+        />
+        {searchTerm && (
+          <button
+            type="button"
+            onClick={() => setSearchTerm("")}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#4A5D51]"
+          >
+            <X size={16} />
+          </button>
+        )}
+      </div>
+
       <h2 className="text-[#8AA396] text-xs font-medium uppercase tracking-wide mb-3 mt-2">
-        Products ({products.length})
+        {searchTerm ? `Results (${filteredProducts.length})` : `Products (${products.length})`}
       </h2>
 
-      {products.length === 0 ? (
+      {filteredProducts.length === 0 ? (
         <div className="text-center py-14 border border-dashed border-[#22362A] rounded-xl">
           <Package size={24} className="text-[#4A5D51] mx-auto mb-2" />
-          <p className="text-[#4A5D51] text-sm">No products yet.</p>
+          <p className="text-[#4A5D51] text-sm">
+            {searchTerm ? `No products match "${searchTerm}".` : "No products yet."}
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3">
-          {products.map((p) => {
+          {filteredProducts.map((p) => {
             const inCart = cart.find((item) => item.id === p.id);
             return (
               <div
@@ -424,4 +452,4 @@ export default function StorePage({ slug }) {
       )}
     </div>
   );
-    }
+}
