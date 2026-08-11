@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Store, Package, Loader2, Plus, Minus, Check, ShoppingCart, X, Trash2 } from "lucide-react";
+import { Store, Package, Loader2, Plus, Minus, Check, ShoppingCart, X, Trash2, MessageCircle } from "lucide-react";
 import { supabase } from "../supabaseClient";
 
 export default function StorePage({ slug }) {
@@ -73,6 +73,24 @@ export default function StorePage({ slug }) {
 
   const cartCount = cart.reduce((sum, item) => sum + item.qty, 0);
   const cartTotal = cart.reduce((sum, item) => sum + item.qty * item.price, 0);
+
+  const sendOrderOnWhatsApp = () => {
+    if (!store.whatsapp_number || cart.length === 0) return;
+
+    const lines = cart.map(
+      (item) => `${item.qty}x ${item.name} - ₦${(item.qty * item.price).toLocaleString()}`
+    );
+
+    const message =
+      `Hi, I'd like to order:\n\n` +
+      lines.join("\n") +
+      `\n\nTotal: ₦${cartTotal.toLocaleString()}` +
+      `\n\n(via Shopvora - ${store.store_name})`;
+
+    const cleanNumber = store.whatsapp_number.replace(/[^0-9]/g, "");
+    const url = `https://wa.me/${cleanNumber}?text=${encodeURIComponent(message)}`;
+    window.open(url, "_blank");
+  };
 
   if (loading) {
     return (
@@ -271,9 +289,11 @@ export default function StorePage({ slug }) {
                 </div>
                 <button
                   type="button"
-                  className="w-full bg-[#3DDC84] hover:bg-[#34C476] transition-colors text-[#0F1A14] font-semibold text-sm rounded-lg py-3"
+                  onClick={sendOrderOnWhatsApp}
+                  className="w-full bg-[#3DDC84] hover:bg-[#34C476] transition-colors text-[#0F1A14] font-semibold text-sm rounded-lg py-3 flex items-center justify-center gap-2"
                 >
-                  Send Order on WhatsApp (next step)
+                  <MessageCircle size={16} />
+                  Send Order on WhatsApp
                 </button>
               </div>
             )}
@@ -282,4 +302,4 @@ export default function StorePage({ slug }) {
       )}
     </div>
   );
-  }
+        }
