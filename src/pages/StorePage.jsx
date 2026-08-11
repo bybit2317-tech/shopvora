@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Store, Package, Loader2, Plus, Minus, Check, ShoppingCart, X, Trash2, MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "../supabaseClient";
 
-function ProductPhotos({ product }) {
+function ProductPhotos({ product, onOpenFullscreen }) {
   const photos = product.photo_urls && product.photo_urls.length > 0
     ? product.photo_urls
     : (product.photo_url ? [product.photo_url] : []);
@@ -28,7 +28,10 @@ function ProductPhotos({ product }) {
   }
 
   return (
-    <div className="relative w-full h-32 bg-[#0F1A14]">
+    <div
+      className="relative w-full h-32 bg-[#0F1A14] cursor-pointer"
+      onClick={() => onOpenFullscreen(photos, index)}
+    >
       <img
         src={photos[index]}
         alt={product.name}
@@ -85,6 +88,8 @@ export default function StorePage({ slug }) {
   const [notFound, setNotFound] = useState(false);
   const [cart, setCart] = useState([]);
   const [showCart, setShowCart] = useState(false);
+  const [fullscreenPhotos, setFullscreenPhotos] = useState(null);
+  const [fullscreenIndex, setFullscreenIndex] = useState(0);
 
   useEffect(() => {
     loadStore();
@@ -115,6 +120,23 @@ export default function StorePage({ slug }) {
 
     setProducts(prodData || []);
     setLoading(false);
+  };
+
+  const openFullscreen = (photos, index) => {
+    setFullscreenPhotos(photos);
+    setFullscreenIndex(index);
+  };
+
+  const closeFullscreen = () => {
+    setFullscreenPhotos(null);
+  };
+
+  const prevFullscreen = () => {
+    setFullscreenIndex((i) => (i === 0 ? fullscreenPhotos.length - 1 : i - 1));
+  };
+
+  const nextFullscreen = () => {
+    setFullscreenIndex((i) => (i === fullscreenPhotos.length - 1 ? 0 : i + 1));
   };
 
   const addToCart = (product) => {
@@ -226,7 +248,7 @@ export default function StorePage({ slug }) {
                   p.featured ? "border-[#3DDC84]" : "border-[#22362A]"
                 }`}
               >
-                <ProductPhotos product={p} />
+                <ProductPhotos product={p} onOpenFullscreen={openFullscreen} />
 
                 <div className="p-2.5">
                   <p className="text-white text-xs font-medium truncate">{p.name}</p>
@@ -355,6 +377,51 @@ export default function StorePage({ slug }) {
           </div>
         </div>
       )}
+
+      {fullscreenPhotos && (
+        <div className="fixed inset-0 bg-black/95 z-[60] flex items-center justify-center">
+          <button
+            type="button"
+            onClick={closeFullscreen}
+            className="absolute top-4 right-4 bg-black/50 rounded-full p-2 z-10"
+          >
+            <X size={22} className="text-white" />
+          </button>
+
+          <img
+            src={fullscreenPhotos[fullscreenIndex]}
+            alt="Product"
+            className="max-w-full max-h-full object-contain"
+          />
+
+          {fullscreenPhotos.length > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={prevFullscreen}
+                className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/50 rounded-full p-2"
+              >
+                <ChevronLeft size={22} className="text-white" />
+              </button>
+              <button
+                type="button"
+                onClick={nextFullscreen}
+                className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/50 rounded-full p-2"
+              >
+                <ChevronRight size={22} className="text-white" />
+              </button>
+              <div className="absolute bottom-6 left-0 right-0 flex items-center justify-center gap-1.5">
+                {fullscreenPhotos.map((_, i) => (
+                  <span
+                    key={i}
+                    className={`w-2 h-2 rounded-full ${i === fullscreenIndex ? "bg-white" : "bg-white/40"}`}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
-}
+    }
