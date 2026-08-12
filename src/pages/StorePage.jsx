@@ -133,6 +133,11 @@ export default function StorePage({ slug }) {
 
     setStore(storeData);
 
+    if (storeData.suspended) {
+      setLoading(false);
+      return;
+    }
+
     const { data: prodData } = await supabase
       .from("products")
       .select("*")
@@ -323,6 +328,16 @@ export default function StorePage({ slug }) {
         <Store size={28} className="text-[#4A5D51] mb-3" />
         <p className="text-white font-medium">Store not found</p>
         <p className="text-[#8AA396] text-sm mt-1">Check the link and try again.</p>
+      </div>
+    );
+  }
+
+  if (store.suspended) {
+    return (
+      <div className="min-h-screen bg-[#0F1A14] flex flex-col items-center justify-center px-6 text-center">
+        <Store size={28} className="text-[#4A5D51] mb-3" />
+        <p className="text-white font-medium">This store is currently unavailable</p>
+        <p className="text-[#8AA396] text-sm mt-1">Please check back later.</p>
       </div>
     );
   }
