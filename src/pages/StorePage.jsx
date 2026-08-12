@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Store, Package, Loader2, Plus, Minus, Check, ShoppingCart, X, Trash2, MessageCircle, ChevronLeft, ChevronRight, Search, Star, Flag } from "lucide-react";
+import { Store, Package, Loader2, Plus, Minus, Check, ShoppingCart, X, Trash2, MessageCircle, ChevronLeft, ChevronRight, Search, Star, Flag, Share2 } from "lucide-react";
 import { supabase } from "../supabaseClient";
 
 function ProductPhotos({ product, onOpenFullscreen }) {
@@ -111,6 +111,7 @@ export default function StorePage({ slug }) {
   const [reportDetails, setReportDetails] = useState("");
   const [submittingReport, setSubmittingReport] = useState(false);
   const [reportSubmitted, setReportSubmitted] = useState(false);
+  const [copiedId, setCopiedId] = useState(null);
 
   useEffect(() => {
     loadStore();
@@ -204,6 +205,27 @@ export default function StorePage({ slug }) {
     setReportReason("");
     setReportDetails("");
     setReportSubmitted(false);
+  };
+
+  const shareProduct = async (product) => {
+    const storeUrl = `https://shopvora-store.netlify.app/${slug}`;
+    const message = `Check out ${product.name} - ₦${Number(product.price).toLocaleString()} on ${store.store_name}\n${storeUrl}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ text: message });
+      } catch (err) {
+        // user cancelled share, do nothing
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(message);
+        setCopiedId(product.id);
+        setTimeout(() => setCopiedId(null), 2000);
+      } catch (err) {
+        console.error(err);
+      }
+    }
   };
 
   const avgRating = ratings.length > 0
@@ -447,7 +469,20 @@ export default function StorePage({ slug }) {
                 <ProductPhotos product={p} onOpenFullscreen={openFullscreen} />
 
                 <div className="p-2.5">
-                  <p className="text-white text-xs font-medium truncate">{p.name}</p>
+                  <div className="flex items-start justify-between gap-1">
+                    <p className="text-white text-xs font-medium truncate flex-1">{p.name}</p>
+                    <button
+                      type="button"
+                      onClick={() => shareProduct(p)}
+                      className="shrink-0 text-[#4A5D51]"
+                    >
+                      {copiedId === p.id ? (
+                        <Check size={13} className="text-[#3DDC84]" />
+                      ) : (
+                        <Share2 size={13} />
+                      )}
+                    </button>
+                  </div>
                   <p className="text-[#3DDC84] text-xs font-semibold mt-0.5">
                     ₦{Number(p.price).toLocaleString()}
                   </p>
