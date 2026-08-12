@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { Store, Loader2, LogOut, Users } from "lucide-react";
+import { Store, Loader2, LogOut, Users, Ban, CheckCircle2 } from "lucide-react";
 import { supabase } from "../supabaseClient";
 
 export default function AdminDashboard({ onLogout }) {
   const [stores, setStores] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [togglingId, setTogglingId] = useState(null);
 
   useEffect(() => {
     loadStores();
@@ -19,6 +20,25 @@ export default function AdminDashboard({ onLogout }) {
 
     setStores(data || []);
     setLoading(false);
+  };
+
+  const toggleSuspend = async (store) => {
+    setTogglingId(store.id);
+    try {
+      const { error } = await supabase
+        .from("stores")
+        .update({ suspended: !store.suspended })
+        .eq("id", store.id);
+      if (error) throw error;
+
+      setStores((prev) =>
+        prev.map((s) => (s.id === store.id ? { ...s, suspended: !store.suspended } : s))
+      );
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setTogglingId(null);
+    }
   };
 
   const handleLogout = () => {
@@ -75,19 +95,54 @@ export default function AdminDashboard({ onLogout }) {
           {stores.map((s) => (
             <div
               key={s.id}
-              className="bg-[#16241C] border border-[#22362A] rounded-xl px-4 py-3"
+              className={`border rounded-xl px-4 py-3 ${
+                s.suspended
+                  ? "bg-[#2A1616] border-[#4A2323]"
+                  : "bg-[#16241C] border-[#22362A]"
+              }`}
             >
-              <p className="text-white text-sm font-medium">{s.store_name}</p>
-              <p className="text-[#4A5D51] text-xs mt-0.5">
-                {s.store_slug} · {[s.city, s.state].filter(Boolean).join(", ") || "No location"}
-              </p>
-              <p className="text-[#4A5D51] text-xs mt-0.5">
-                Joined {new Date(s.created_at).toLocaleDateString()}
-              </p>
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-white text-sm font-medium">{s.store_name}</p>
+                  <p className="text-[#4A5D51] text-xs mt-0.5">
+                    {s.store_slug} · {[s.city, s.state].filter(Boolean).join(", ") || "No location"}
+                  </p>
+                  <p className="text-[#4A5D51] text-xs mt-0.5">
+                    Joined {new Date(s.created_at).toLocaleDateString()}
+                  </p>
+                  {s.suspended && (
+                    <span className="inline-block mt-1.5 text-[10px] px-1.5 py-0.5 rounded bg-[#332020] text-[#FF6B6B]">
+                      Suspended
+                    </span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => toggleSuspend(s)}
+                  disabled={togglingId === s.id}
+                  className={`shrink-0 flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-lg border ${
+                    s.suspended
+                      ? "bg-[#1B3324] border-[#3DDC84] text-[#3DDC84]"
+                      : "bg-[#0F1A14] border-[#22362A] text-[#8AA396]"
+                  }`}
+                >
+                  {togglingId === s.id ? (
+                    <Loader2 size={12} className="animate-spin" />
+                  ) : s.suspended ? (
+                    <>
+                      <CheckCircle2 size={12} /> Unsuspend
+                    </>
+                  ) : (
+                    <>
+                      <Ban size={12} /> Suspend
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           ))}
         </div>
       )}
     </div>
   );
-    }
+}
