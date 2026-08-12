@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Store, Package, Loader2, Plus, Minus, Check, ShoppingCart, X, Trash2, MessageCircle, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { Store, Package, Loader2, Plus, Minus, Check, ShoppingCart, X, Trash2, MessageCircle, ChevronLeft, ChevronRight, Search, Star } from "lucide-react";
 import { supabase } from "../supabaseClient";
 
 function ProductPhotos({ product, onOpenFullscreen }) {
@@ -93,6 +93,11 @@ export default function StorePage({ slug }) {
   const [fullscreenIndex, setFullscreenIndex] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
+  const [ratings, setRatings] = useState([]);
+  const [userRating, setUserRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [submittingRating, setSubmittingRating] = useState(false);
+  const [ratingSubmitted, setRatingSubmitted] = useState(false);
 
   useEffect(() => {
     loadStore();
@@ -126,8 +131,45 @@ export default function StorePage({ slug }) {
     const { data: catData } = await supabase.from("categories").select("*").order("name");
     setCategories(catData || []);
 
+    const { data: ratingData } = await supabase
+      .from("ratings")
+      .select("stars")
+      .eq("store_id", storeData.id);
+
+    setRatings(ratingData || []);
+
+    const ratedKey = `shopvora_rated_${storeData.id}`;
+    if (localStorage.getItem(ratedKey)) {
+      setRatingSubmitted(true);
+    }
+
     setLoading(false);
   };
+
+  const submitRating = async (stars) => {
+    if (submittingRating || ratingSubmitted) return;
+    setSubmittingRating(true);
+    try {
+      const { error } = await supabase.from("ratings").insert({
+        store_id: store.id,
+        stars,
+      });
+      if (error) throw error;
+
+      setUserRating(stars);
+      setRatings((prev) => [...prev, { stars }]);
+      setRatingSubmitted(true);
+      localStorage.setItem(`shopvora_rated_${store.id}`, "true");
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSubmittingRating(false);
+    }
+  };
+
+  const avgRating = ratings.length > 0
+    ? (ratings.reduce((sum, r) => sum + r.stars, 0) / ratings.length)
+    : 0;
 
   const openFullscreen = (photos, index) => {
     setFullscreenPhotos(photos);
@@ -240,8 +282,52 @@ export default function StorePage({ slug }) {
         </div>
       </div>
 
+      <div className="flex items-center gap-2 mt-2 mb-2">
+        <div className="flex items-center gap-0.5">
+          {[1, 2, 3, 4, 5].map((n) => (
+            <Star
+              key={n}
+              size={13}
+              className={n <= Math.round(avgRating) ? "text-[#3DDC84]" : "text-[#3A4F42]"}
+              fill={n <= Math.round(avgRating) ? "#3DDC84" : "none"}
+            />
+          ))}
+        </div>
+        <span className="text-[#8AA396] text-xs">
+          {ratings.length > 0
+            ? `${avgRating.toFixed(1)} (${ratings.length} rating${ratings.length > 1 ? "s" : ""})`
+            : "No ratings yet"}
+        </span>
+      </div>
+
+      {!ratingSubmitted ? (
+        <div className="flex items-center gap-2 mb-4">
+          <span className="text-[#4A5D51] text-xs">Rate this seller:</span>
+          <div className="flex items-center gap-0.5">
+            {[1, 2, 3, 4, 5].map((n) => (
+              <button
+                key={n}
+                type="button"
+                disabled={submittingRating}
+                onClick={() => submitRating(n)}
+                onMouseEnter={() => setHoverRating(n)}
+                onMouseLeave={() => setHoverRating(0)}
+              >
+                <Star
+                  size={16}
+                  className={n <= (hoverRating || userRating) ? "text-[#3DDC84]" : "text-[#3A4F42]"}
+                  fill={n <= (hoverRating || userRating) ? "#3DDC84" : "none"}
+                />
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <p className="text-[#3DDC84] text-xs mb-4">Thanks for rating this seller!</p>
+      )}
+
       {store.description && (
-        <p className="text-[#8AA396] text-sm mt-3 mb-4 leading-relaxed">{store.description}</p>
+        <p className="text-[#8AA396] text-sm mb-4 leading-relaxed">{store.description}</p>
       )}
 
       <div className="relative mb-4">
@@ -495,4 +581,4 @@ export default function StorePage({ slug }) {
       )}
     </div>
   );
-      }
+}
