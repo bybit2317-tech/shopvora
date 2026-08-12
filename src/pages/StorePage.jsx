@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Store, Package, Loader2, Plus, Minus, Check, ShoppingCart, X, Trash2, MessageCircle, ChevronLeft, ChevronRight, Search, Star } from "lucide-react";
+import { Store, Package, Loader2, Plus, Minus, Check, ShoppingCart, X, Trash2, MessageCircle, ChevronLeft, ChevronRight, Search, Star, Flag } from "lucide-react";
 import { supabase } from "../supabaseClient";
 
 function ProductPhotos({ product, onOpenFullscreen }) {
@@ -81,6 +81,14 @@ function ProductPhotos({ product, onOpenFullscreen }) {
   );
 }
 
+const REPORT_REASONS = [
+  "Fake or counterfeit product",
+  "Seller not responding / scam",
+  "Wrong or misleading price",
+  "Inappropriate content",
+  "Other",
+];
+
 export default function StorePage({ slug }) {
   const [store, setStore] = useState(null);
   const [products, setProducts] = useState([]);
@@ -98,6 +106,11 @@ export default function StorePage({ slug }) {
   const [hoverRating, setHoverRating] = useState(0);
   const [submittingRating, setSubmittingRating] = useState(false);
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
+  const [showReport, setShowReport] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  const [reportDetails, setReportDetails] = useState("");
+  const [submittingReport, setSubmittingReport] = useState(false);
+  const [reportSubmitted, setReportSubmitted] = useState(false);
 
   useEffect(() => {
     loadStore();
@@ -165,6 +178,32 @@ export default function StorePage({ slug }) {
     } finally {
       setSubmittingRating(false);
     }
+  };
+
+  const submitReport = async () => {
+    if (!reportReason || submittingReport) return;
+    setSubmittingReport(true);
+    try {
+      const { error } = await supabase.from("reports").insert({
+        store_id: store.id,
+        reason: reportReason,
+        details: reportDetails.trim() || null,
+      });
+      if (error) throw error;
+
+      setReportSubmitted(true);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSubmittingReport(false);
+    }
+  };
+
+  const closeReport = () => {
+    setShowReport(false);
+    setReportReason("");
+    setReportDetails("");
+    setReportSubmitted(false);
   };
 
   const avgRating = ratings.length > 0
@@ -272,7 +311,7 @@ export default function StorePage({ slug }) {
         <div className="w-11 h-11 rounded-lg bg-[#3DDC84] flex items-center justify-center shrink-0">
           <Store size={20} className="text-[#0F1A14]" strokeWidth={2.5} />
         </div>
-        <div>
+        <div className="flex-1">
           <h1 className="text-white font-semibold text-lg leading-tight">{store.store_name}</h1>
           {(store.city || store.state) && (
             <p className="text-[#4A5D51] text-xs">
@@ -444,6 +483,17 @@ export default function StorePage({ slug }) {
         </div>
       )}
 
+      <div className="mt-8 text-center">
+        <button
+          type="button"
+          onClick={() => setShowReport(true)}
+          className="text-[#4A5D51] text-xs flex items-center gap-1 mx-auto"
+        >
+          <Flag size={12} />
+          Report this store
+        </button>
+      </div>
+
       {cartCount > 0 && !showCart && (
         <button
           type="button"
@@ -577,6 +627,72 @@ export default function StorePage({ slug }) {
               </div>
             </>
           )}
+        </div>
+      )}
+
+      {showReport && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-6">
+          <div className="bg-[#16241C] w-full max-w-sm rounded-2xl border border-[#22362A] p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-white font-semibold text-base">Report this store</h2>
+              <button type="button" onClick={closeReport}>
+                <X size={20} className="text-[#8AA396]" />
+              </button>
+            </div>
+
+            {reportSubmitted ? (
+              <div className="text-center py-6">
+                <Check size={28} className="text-[#3DDC84] mx-auto mb-2" />
+                <p className="text-white text-sm font-medium">Report submitted</p>
+                <p className="text-[#8AA396] text-xs mt-1">Thanks — our team will review this.</p>
+                <button
+                  type="button"
+                  onClick={closeReport}
+                  className="mt-4 text-[#3DDC84] text-xs font-medium"
+                >
+                  Close
+                </button>
+              </div>
+            ) : (
+              <>
+                <p className="text-[#8AA396] text-xs mb-3">What's the issue?</p>
+                <div className="space-y-2 mb-4">
+                  {REPORT_REASONS.map((reason) => (
+                    <button
+                      key={reason}
+                      type="button"
+                      onClick={() => setReportReason(reason)}
+                      className={`w-full text-left text-sm px-3 py-2.5 rounded-lg border ${
+                        reportReason === reason
+                          ? "bg-[#1B3324] border-[#3DDC84] text-white"
+                          : "bg-[#0F1A14] border-[#22362A] text-[#8AA396]"
+                      }`}
+                    >
+                      {reason}
+                    </button>
+                  ))}
+                </div>
+
+                <textarea
+                  value={reportDetails}
+                  onChange={(e) => setReportDetails(e.target.value)}
+                  placeholder="Additional details (optional)"
+                  rows={2}
+                  style={{ color: "#FFFFFF", backgroundColor: "#0F1A14" }}
+                  className="w-full border border-[#22362A] rounded-lg px-3 py-2 text-sm placeholder-[#4A5D51] focus:outline-none focus:ring-2 focus:ring-[#3DDC84] focus:border-transparent resize-none mb-4"
+                />
+
+                <button
+                  type="button"
+                  onClick={submitReport}
+                  disabled={!reportReason || submittingReport}
+                  className="w-full bg-[#3DDC84] hover:bg-[#34C476] transition-colors text-[#0F1A14] font-semibold text-sm rounded-lg py-2.5 disabled:opacity-50"
+                >
+                  {submittingReport ? "Submitting..." : "Submit report"}
+                </button>
+              </>
+            )}
+          </div>
         </div>
       )}
     </div>
