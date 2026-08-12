@@ -4,15 +4,27 @@ import AuthPage from "./pages/AuthPage";
 import StoreSetup from "./pages/StoreSetup";
 import ProductUpload from "./pages/ProductUpload";
 import StorePage from "./pages/StorePage";
+import AdminLogin from "./pages/AdminLogin";
+import AdminDashboard from "./pages/AdminDashboard";
 
 export default function App() {
   const [user, setUser] = useState(null);
   const [storeCreated, setStoreCreated] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
   const [storeSlug, setStoreSlug] = useState(null);
+  const [isAdminRoute, setIsAdminRoute] = useState(false);
+  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
 
   useEffect(() => {
     const path = window.location.pathname.replace(/^\/+|\/+$/g, "");
+
+    if (path === "admin") {
+      setIsAdminRoute(true);
+      setIsAdminLoggedIn(sessionStorage.getItem("shopvora_admin") === "true");
+      setCheckingSession(false);
+      return;
+    }
+
     if (path.length > 0) {
       setStoreSlug(path);
       setCheckingSession(false);
@@ -50,6 +62,13 @@ export default function App() {
     return <div className="min-h-screen bg-[#0F1A14]" />;
   }
 
+  if (isAdminRoute) {
+    if (isAdminLoggedIn) {
+      return <AdminDashboard onLogout={() => setIsAdminLoggedIn(false)} />;
+    }
+    return <AdminLogin onLoggedIn={() => setIsAdminLoggedIn(true)} />;
+  }
+
   if (storeSlug) {
     return <StorePage slug={storeSlug} />;
   }
@@ -63,4 +82,4 @@ export default function App() {
   }
 
   return <ProductUpload user={user} />;
-      }
+}
