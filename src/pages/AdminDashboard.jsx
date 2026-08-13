@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
-import { Store, Loader2, LogOut, Users, Ban, CheckCircle2, Flag, Tag, Plus, Trash2 } from "lucide-react";
+import { Store, Loader2, LogOut, Users, Ban, CheckCircle2, Flag, Tag, Plus, Trash2, Package, TrendingUp } from "lucide-react";
 import { supabase } from "../supabaseClient";
 
 export default function AdminDashboard({ onLogout }) {
   const [stores, setStores] = useState([]);
   const [reports, setReports] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [productCount, setProductCount] = useState(0);
+  const [newSellersThisWeek, setNewSellersThisWeek] = useState(0);
   const [loading, setLoading] = useState(true);
   const [togglingId, setTogglingId] = useState(null);
   const [activeTab, setActiveTab] = useState("sellers");
@@ -26,6 +28,13 @@ export default function AdminDashboard({ onLogout }) {
 
     setStores(storeData || []);
 
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const recentSellers = (storeData || []).filter(
+      (s) => new Date(s.created_at) >= sevenDaysAgo
+    );
+    setNewSellersThisWeek(recentSellers.length);
+
     const { data: reportData } = await supabase
       .from("reports")
       .select("*, stores(store_name, whatsapp_number)")
@@ -39,6 +48,12 @@ export default function AdminDashboard({ onLogout }) {
       .order("name");
 
     setCategories(catData || []);
+
+    const { count: prodCount } = await supabase
+      .from("products")
+      .select("*", { count: "exact", head: true });
+
+    setProductCount(prodCount || 0);
 
     setLoading(false);
   };
@@ -131,12 +146,29 @@ export default function AdminDashboard({ onLogout }) {
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 mb-6">
+      <div className="grid grid-cols-2 gap-3 mb-3">
         <div className="bg-[#16241C] border border-[#22362A] rounded-xl p-4 flex items-center gap-3">
           <Users size={20} className="text-[#3DDC84]" />
           <div>
             <p className="text-white font-semibold text-lg leading-tight">{stores.length}</p>
             <p className="text-[#8AA396] text-xs">Sellers</p>
+          </div>
+        </div>
+        <div className="bg-[#16241C] border border-[#22362A] rounded-xl p-4 flex items-center gap-3">
+          <Package size={20} className="text-[#3DDC84]" />
+          <div>
+            <p className="text-white font-semibold text-lg leading-tight">{productCount}</p>
+            <p className="text-[#8AA396] text-xs">Products</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 mb-6">
+        <div className="bg-[#16241C] border border-[#22362A] rounded-xl p-4 flex items-center gap-3">
+          <TrendingUp size={20} className="text-[#3DDC84]" />
+          <div>
+            <p className="text-white font-semibold text-lg leading-tight">{newSellersThisWeek}</p>
+            <p className="text-[#8AA396] text-xs">New sellers (7d)</p>
           </div>
         </div>
         <div className="bg-[#16241C] border border-[#22362A] rounded-xl p-4 flex items-center gap-3">
@@ -349,4 +381,4 @@ export default function AdminDashboard({ onLogout }) {
       )}
     </div>
   );
-           }
+}
