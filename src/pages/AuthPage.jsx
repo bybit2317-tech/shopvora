@@ -9,9 +9,16 @@ export default function AuthPage({ onLoggedIn }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const handleSubmit = async () => {
     setError("");
+
+    if (mode === "signup" && !agreedToTerms) {
+      setError("You must agree to the Terms & Conditions to create a store.");
+      return;
+    }
+
     setLoading(true);
     try {
       if (mode === "signup") {
@@ -91,6 +98,28 @@ export default function AuthPage({ onLoggedIn }) {
                 />
               </div>
 
+              {mode === "signup" && (
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={agreedToTerms}
+                    onChange={(e) => setAgreedToTerms(e.target.checked)}
+                    className="mt-0.5 w-4 h-4 accent-[#3DDC84] shrink-0"
+                  />
+                  <span className="text-[#8AA396] text-xs leading-relaxed">
+                    I agree to Shopvora's{" "}
+                    <a
+                      href="/terms"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[#3DDC84] underline"
+                    >
+                      Terms & Conditions
+                    </a>
+                  </span>
+                </label>
+              )}
+
               {error && (
                 <p className="text-[#FF6B6B] text-xs bg-[#2A1616] border border-[#4A2323] rounded-lg px-3 py-2">
                   {error}
@@ -135,4 +164,4 @@ export default function AuthPage({ onLoggedIn }) {
       </p>
     </div>
   );
-          }
+               }
