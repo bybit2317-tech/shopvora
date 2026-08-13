@@ -1,13 +1,17 @@
 import { useState, useEffect } from "react";
-import { Store, Loader2, LogOut, Users, Ban, CheckCircle2, Flag } from "lucide-react";
+import { Store, Loader2, LogOut, Users, Ban, CheckCircle2, Flag, Tag, Plus, Trash2 } from "lucide-react";
 import { supabase } from "../supabaseClient";
 
 export default function AdminDashboard({ onLogout }) {
   const [stores, setStores] = useState([]);
   const [reports, setReports] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [togglingId, setTogglingId] = useState(null);
   const [activeTab, setActiveTab] = useState("sellers");
+  const [newCategory, setNewCategory] = useState("");
+  const [addingCategory, setAddingCategory] = useState(false);
+  const [deletingCategoryId, setDeletingCategoryId] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -29,6 +33,13 @@ export default function AdminDashboard({ onLogout }) {
 
     setReports(reportData || []);
 
+    const { data: catData } = await supabase
+      .from("categories")
+      .select("*")
+      .order("name");
+
+    setCategories(catData || []);
+
     setLoading(false);
   };
 
@@ -48,6 +59,40 @@ export default function AdminDashboard({ onLogout }) {
       console.error(err);
     } finally {
       setTogglingId(null);
+    }
+  };
+
+  const addCategory = async () => {
+    if (!newCategory.trim() || addingCategory) return;
+    setAddingCategory(true);
+    try {
+      const { data, error } = await supabase
+        .from("categories")
+        .insert({ name: newCategory.trim() })
+        .select()
+        .single();
+      if (error) throw error;
+
+      setCategories((prev) => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
+      setNewCategory("");
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setAddingCategory(false);
+    }
+  };
+
+  const deleteCategory = async (id) => {
+    setDeletingCategoryId(id);
+    try {
+      const { error } = await supabase.from("categories").delete().eq("id", id);
+      if (error) throw error;
+
+      setCategories((prev) => prev.filter((c) => c.id !== id));
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setDeletingCategoryId(null);
     }
   };
 
@@ -103,11 +148,11 @@ export default function AdminDashboard({ onLogout }) {
         </div>
       </div>
 
-      <div className="flex gap-2 mb-5">
+      <div className="flex gap-2 mb-5 overflow-x-auto">
         <button
           type="button"
           onClick={() => setActiveTab("sellers")}
-          className={`text-xs font-medium px-3 py-1.5 rounded-full border ${
+          className={`shrink-0 text-xs font-medium px-3 py-1.5 rounded-full border ${
             activeTab === "sellers"
               ? "bg-[#3DDC84] text-[#0F1A14] border-[#3DDC84]"
               : "bg-[#16241C] text-[#8AA396] border-[#22362A]"
@@ -118,13 +163,24 @@ export default function AdminDashboard({ onLogout }) {
         <button
           type="button"
           onClick={() => setActiveTab("reports")}
-          className={`text-xs font-medium px-3 py-1.5 rounded-full border ${
+          className={`shrink-0 text-xs font-medium px-3 py-1.5 rounded-full border ${
             activeTab === "reports"
               ? "bg-[#3DDC84] text-[#0F1A14] border-[#3DDC84]"
               : "bg-[#16241C] text-[#8AA396] border-[#22362A]"
           }`}
         >
           Reports
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("categories")}
+          className={`shrink-0 text-xs font-medium px-3 py-1.5 rounded-full border ${
+            activeTab === "categories"
+              ? "bg-[#3DDC84] text-[#0F1A14] border-[#3DDC84]"
+              : "bg-[#16241C] text-[#8AA396] border-[#22362A]"
+          }`}
+        >
+          Categories
         </button>
       </div>
 
@@ -229,6 +285,68 @@ export default function AdminDashboard({ onLogout }) {
           )}
         </>
       )}
+
+      {activeTab === "categories" && (
+        <>
+          <h2 className="text-[#8AA396] text-xs font-medium uppercase tracking-wide mb-3">
+            Manage categories
+          </h2>
+
+          <div className="flex items-center gap-2 mb-4">
+            <input
+              type="text"
+              value={newCategory}
+              onChange={(e) => setNewCategory(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addCategory()}
+              placeholder="New category name"
+              style={{ color: "#FFFFFF", backgroundColor: "#16241C" }}
+              className="flex-1 border border-[#22362A] rounded-lg px-3.5 py-2.5 text-sm placeholder-[#4A5D51] focus:outline-none focus:ring-2 focus:ring-[#3DDC84] focus:border-transparent"
+            />
+            <button
+              type="button"
+              onClick={addCategory}
+              disabled={!newCategory.trim() || addingCategory}
+              className="shrink-0 bg-[#3DDC84] text-[#0F1A14] rounded-lg p-2.5 disabled:opacity-50"
+            >
+              {addingCategory ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <Plus size={16} />
+              )}
+            </button>
+          </div>
+
+          {categories.length === 0 ? (
+            <p className="text-[#4A5D51] text-sm text-center py-10">No categories yet.</p>
+          ) : (
+            <div className="space-y-2">
+              {categories.map((c) => (
+                <div
+                  key={c.id}
+                  className="bg-[#16241C] border border-[#22362A] rounded-xl px-4 py-3 flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-2">
+                    <Tag size={14} className="text-[#4A5D51]" />
+                    <p className="text-white text-sm">{c.name}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => deleteCategory(c.id)}
+                    disabled={deletingCategoryId === c.id}
+                    className="text-[#FF6B6B]"
+                  >
+                    {deletingCategoryId === c.id ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : (
+                      <Trash2 size={14} />
+                    )}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
-    }
+           }
