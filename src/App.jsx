@@ -6,6 +6,7 @@ import ProductUpload from "./pages/ProductUpload";
 import StorePage from "./pages/StorePage";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
+import TermsPage from "./pages/TermsPage";
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -14,6 +15,7 @@ export default function App() {
   const [storeSlug, setStoreSlug] = useState(null);
   const [isAdminRoute, setIsAdminRoute] = useState(false);
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
+  const [isTermsRoute, setIsTermsRoute] = useState(false);
 
   useEffect(() => {
     const path = window.location.pathname.replace(/^\/+|\/+$/g, "");
@@ -21,6 +23,12 @@ export default function App() {
     if (path === "admin") {
       setIsAdminRoute(true);
       setIsAdminLoggedIn(sessionStorage.getItem("shopvora_admin") === "true");
+      setCheckingSession(false);
+      return;
+    }
+
+    if (path === "terms") {
+      setIsTermsRoute(true);
       setCheckingSession(false);
       return;
     }
@@ -62,6 +70,10 @@ export default function App() {
     return <div className="min-h-screen bg-[#0F1A14]" />;
   }
 
+  if (isTermsRoute) {
+    return <TermsPage />;
+  }
+
   if (isAdminRoute) {
     if (isAdminLoggedIn) {
       return <AdminDashboard onLogout={() => setIsAdminLoggedIn(false)} />;
@@ -82,4 +94,4 @@ export default function App() {
   }
 
   return <ProductUpload user={user} />;
-}
+  }
