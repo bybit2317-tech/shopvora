@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
-import { Store, Loader2, LogOut, Users, Ban, CheckCircle2, Flag, Tag, Plus, Trash2, Package, TrendingUp } from "lucide-react";
+import { Store, Loader2, LogOut, Users, Ban, CheckCircle2, Flag, Tag, Plus, Trash2, Package, TrendingUp, CreditCard, Save } from "lucide-react";
 import { supabase } from "../supabaseClient";
 
 export default function AdminDashboard({ onLogout }) {
   const [stores, setStores] = useState([]);
   const [reports, setReports] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [plans, setPlans] = useState([]);
+  const [editedPlans, setEditedPlans] = useState({});
   const [productCount, setProductCount] = useState(0);
   const [newSellersThisWeek, setNewSellersThisWeek] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -14,6 +16,8 @@ export default function AdminDashboard({ onLogout }) {
   const [newCategory, setNewCategory] = useState("");
   const [addingCategory, setAddingCategory] = useState(false);
   const [deletingCategoryId, setDeletingCategoryId] = useState(null);
+  const [savingPlanId, setSavingPlanId] = useState(null);
+  const [savedPlanId, setSavedPlanId] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -48,6 +52,13 @@ export default function AdminDashboard({ onLogout }) {
       .order("name");
 
     setCategories(catData || []);
+
+    const { data: planData } = await supabase
+      .from("plans")
+      .select("*")
+      .order("price");
+
+    setPlans(planData || []);
 
     const { count: prodCount } = await supabase
       .from("products")
@@ -108,6 +119,39 @@ export default function AdminDashboard({ onLogout }) {
       console.error(err);
     } finally {
       setDeletingCategoryId(null);
+    }
+  };
+
+  const handlePriceChange = (planId, value) => {
+    setEditedPlans((prev) => ({ ...prev, [planId]: value }));
+  };
+
+  const savePlanPrice = async (plan) => {
+    const newPrice = editedPlans[plan.id];
+    if (newPrice === undefined || newPrice === "" || Number(newPrice) <= 0) return;
+
+    setSavingPlanId(plan.id);
+    try {
+      const { error } = await supabase
+        .from("plans")
+        .update({ price: Number(newPrice) })
+        .eq("id", plan.id);
+      if (error) throw error;
+
+      setPlans((prev) =>
+        prev.map((p) => (p.id === plan.id ? { ...p, price: Number(newPrice) } : p))
+      );
+      setEditedPlans((prev) => {
+        const copy = { ...prev };
+        delete copy[plan.id];
+        return copy;
+      });
+      setSavedPlanId(plan.id);
+      setTimeout(() => setSavedPlanId(null), 2000);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSavingPlanId(null);
     }
   };
 
@@ -214,6 +258,17 @@ export default function AdminDashboard({ onLogout }) {
         >
           Categories
         </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("plans")}
+          className={`shrink-0 text-xs font-medium px-3 py-1.5 rounded-full border ${
+            activeTab === "plans"
+              ? "bg-[#3DDC84] text-[#0F1A14] border-[#3DDC84]"
+              : "bg-[#16241C] text-[#8AA396] border-[#22362A]"
+          }`}
+        >
+          Plans
+        </button>
       </div>
 
       {activeTab === "sellers" && (
@@ -243,6 +298,9 @@ export default function AdminDashboard({ onLogout }) {
                       </p>
                       <p className="text-[#4A5D51] text-xs mt-0.5">
                         Joined {new Date(s.created_at).toLocaleDateString()}
+                      </p>
+                      <p className="text-[#4A5D51] text-xs mt-0.5">
+                        Plan: {s.subscription_status === "premium" ? "Premium" : "Free"}
                       </p>
                       {s.suspended && (
                         <span className="inline-block mt-1.5 text-[10px] px-1.5 py-0.5 rounded bg-[#332020] text-[#FF6B6B]">
@@ -379,6 +437,70 @@ export default function AdminDashboard({ onLogout }) {
           )}
         </>
       )}
+
+      {activeTab === "plans" && (
+        <>
+          <h2 className="text-[#8AA396] text-xs font-medium uppercase tracking-wide mb-3">
+            Subscription plans
+          </h2>
+          <p className="text-[#4A5D51] text-xs mb-4">
+            These prices show to sellers when they upgrade to Premium.
+          </p>
+
+          {plans.length === 0 ? (
+            <p className="text-[#4A5D51] text-sm text-center py-10">No plans found.</p>
+          ) : (
+            <div className="space-y-3">
+              {plans.map((plan) => (
+                <div
+                  key={plan.id}
+                  className="bg-[#16241C] border border-[#22362A] rounded-xl px-4 py-3"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <CreditCard size={14} className="text-[#3DDC84]" />
+                    <p className="text-white text-sm font-medium">{plan.name}</p>
+                    <span className="text-[#4A5D51] text-xs">
+                      ({plan.duration_days} days)
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[#8AA396] text-sm">₦</span>
+                    <input
+                      type="number"
+                      value={
+                        editedPlans[plan.id] !== undefined
+                          ? editedPlans[plan.id]
+                          : plan.price
+                      }
+                      onChange={(e) => handlePriceChange(plan.id, e.target.value)}
+                      style={{ color: "#FFFFFF", backgroundColor: "#0F1A14" }}
+                      className="flex-1 border border-[#22362A] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#3DDC84] focus:border-transparent"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => savePlanPrice(plan)}
+                      disabled={editedPlans[plan.id] === undefined || savingPlanId === plan.id}
+                      className="shrink-0 flex items-center gap-1 bg-[#3DDC84] text-[#0F1A14] text-xs font-medium px-3 py-2 rounded-lg disabled:opacity-40"
+                    >
+                      {savingPlanId === plan.id ? (
+                        <Loader2 size={13} className="animate-spin" />
+                      ) : savedPlanId === plan.id ? (
+                        <>
+                          <CheckCircle2 size={13} /> Saved
+                        </>
+                      ) : (
+                        <>
+                          <Save size={13} /> Save
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
-}
+      }
