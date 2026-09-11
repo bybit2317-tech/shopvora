@@ -7,6 +7,7 @@ import StorePage from "./pages/StorePage";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import TermsPage from "./pages/TermsPage";
+import EditStore from "./pages/EditStore";
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -16,6 +17,7 @@ export default function App() {
   const [isAdminRoute, setIsAdminRoute] = useState(false);
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
   const [isTermsRoute, setIsTermsRoute] = useState(false);
+  const [showEditStore, setShowEditStore] = useState(false);
 
   useEffect(() => {
     const path = window.location.pathname.replace(/^\/+|\/+$/g, "");
@@ -93,5 +95,9 @@ export default function App() {
     return <StoreSetup user={user} onStoreCreated={() => setStoreCreated(true)} />;
   }
 
-  return <ProductUpload user={user} />;
+  if (showEditStore) {
+    return <EditStore user={user} onBack={() => setShowEditStore(false)} />;
   }
+
+  return <ProductUpload user={user} onEditStore={() => setShowEditStore(true)} />;
+}
