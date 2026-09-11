@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { Store, ArrowRight, Loader2, CheckCircle2, Upload, Package, Copy, Check, X, Pencil, Trash2, Star } from "lucide-react";
+import { Store, ArrowRight, Loader2, CheckCircle2, Upload, Package, Copy, Check, X, Pencil, Trash2, Star, Menu, LogOut, MessageCircle, Settings } from "lucide-react";
 import { supabase } from "../supabaseClient";
 
-export default function ProductUpload({ user }) {
+export default function ProductUpload({ user, onEditStore }) {
   const [store, setStore] = useState(null);
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
@@ -24,8 +24,10 @@ export default function ProductUpload({ user }) {
   const [deletingId, setDeletingId] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [togglingId, setTogglingId] = useState(null);
+  const [showMenu, setShowMenu] = useState(false);
 
   const MAX_PHOTOS = 5;
+  const OWNER_WHATSAPP = "2349130649587";
 
   useEffect(() => {
     loadData();
@@ -226,6 +228,15 @@ export default function ProductUpload({ user }) {
     }
   };
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    window.location.reload();
+  };
+
+  const handleContactUs = () => {
+    window.open(`https://wa.me/${OWNER_WHATSAPP}`, "_blank");
+  };
+
   const totalPhotoCount = existingPhotoUrls.length + photoPreviews.length;
 
   if (loadingPage) {
@@ -238,14 +249,23 @@ export default function ProductUpload({ user }) {
 
   return (
     <div className="min-h-screen bg-[#0F1A14] px-6 py-8 font-sans">
-      <div className="flex items-center gap-2 mb-4">
-        <div className="w-9 h-9 rounded-lg bg-[#3DDC84] flex items-center justify-center">
-          <Store size={16} className="text-[#0F1A14]" strokeWidth={2.5} />
+      <div className="flex items-center justify-between gap-2 mb-4">
+        <div className="flex items-center gap-2">
+          <div className="w-9 h-9 rounded-lg bg-[#3DDC84] flex items-center justify-center">
+            <Store size={16} className="text-[#0F1A14]" strokeWidth={2.5} />
+          </div>
+          <div>
+            <p className="text-white font-semibold text-sm leading-tight">{store?.store_name}</p>
+            <p className="text-[#4A5D51] text-xs">shopvora-store.netlify.app/{store?.store_slug}</p>
+          </div>
         </div>
-        <div>
-          <p className="text-white font-semibold text-sm leading-tight">{store?.store_name}</p>
-          <p className="text-[#4A5D51] text-xs">shopvora-store.netlify.app/{store?.store_slug}</p>
-        </div>
+        <button
+          type="button"
+          onClick={() => setShowMenu(true)}
+          className="shrink-0 w-9 h-9 rounded-lg bg-[#16241C] border border-[#22362A] flex items-center justify-center"
+        >
+          <Menu size={18} className="text-[#8AA396]" />
+        </button>
       </div>
 
       <button
@@ -505,6 +525,51 @@ export default function ProductUpload({ user }) {
           </div>
         )}
       </div>
+
+      {showMenu && (
+        <div className="fixed inset-0 bg-black/70 flex justify-end z-50">
+          <div className="bg-[#16241C] w-64 h-full border-l border-[#22362A] p-5">
+            <div className="flex items-center justify-between mb-6">
+              <p className="text-white font-semibold text-sm">Menu</p>
+              <button type="button" onClick={() => setShowMenu(false)}>
+                <X size={20} className="text-[#8AA396]" />
+              </button>
+            </div>
+
+            <div className="space-y-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMenu(false);
+                  if (onEditStore) onEditStore();
+                }}
+                className="w-full flex items-center gap-2.5 text-left text-[#8AA396] text-sm px-3 py-2.5 rounded-lg hover:bg-[#0F1A14]"
+              >
+                <Settings size={16} />
+                Edit your store
+              </button>
+
+              <button
+                type="button"
+                onClick={handleContactUs}
+                className="w-full flex items-center gap-2.5 text-left text-[#8AA396] text-sm px-3 py-2.5 rounded-lg hover:bg-[#0F1A14]"
+              >
+                <MessageCircle size={16} />
+                Contact us
+              </button>
+
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="w-full flex items-center gap-2.5 text-left text-[#FF6B6B] text-sm px-3 py-2.5 rounded-lg hover:bg-[#0F1A14]"
+              >
+                <LogOut size={16} />
+                Log out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
-      }
+}
