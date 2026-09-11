@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Store, ArrowRight, Loader2, CheckCircle2, Copy, Check } from "lucide-react";
+import { Store, ArrowRight, Loader2, CheckCircle2, Copy, Check, Info, X } from "lucide-react";
 import { supabase } from "../supabaseClient";
 
 const NIGERIAN_STATES = [
@@ -24,6 +24,10 @@ export default function StoreSetup({ user, onStoreCreated }) {
   const [state, setState] = useState("");
   const [city, setCity] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
+  const [bankAccountName, setBankAccountName] = useState("");
+  const [bankName, setBankName] = useState("");
+  const [bankAccountNumber, setBankAccountNumber] = useState("");
+  const [showBankInfo, setShowBankInfo] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -56,6 +60,9 @@ export default function StoreSetup({ user, onStoreCreated }) {
         state: state || null,
         city: city.trim() || null,
         whatsapp_number: whatsapp.trim(),
+        bank_account_name: bankAccountName.trim() || null,
+        bank_name: bankName.trim() || null,
+        bank_account_number: bankAccountNumber.trim() || null,
       });
 
       if (insertError) {
@@ -207,6 +214,55 @@ export default function StoreSetup({ user, onStoreCreated }) {
             <p className="text-[#4A5D51] text-xs mt-1.5">Buyers tap a button to message you here directly.</p>
           </div>
 
+          <div className="pt-2 border-t border-[#22362A]">
+            <div className="flex items-center gap-1.5 mb-3 mt-3">
+              <p className="text-[#8AA396] text-xs font-medium">Payment details (optional)</p>
+              <button
+                type="button"
+                onClick={() => setShowBankInfo(true)}
+                className="text-[#4A5D51]"
+              >
+                <Info size={13} />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-[#8AA396] text-xs font-medium mb-1.5">Account name</label>
+                <input
+                  type="text"
+                  value={bankAccountName}
+                  onChange={(e) => setBankAccountName(e.target.value)}
+                  placeholder="Jane Okafor"
+                  style={{ color: "#FFFFFF", backgroundColor: "#0F1A14" }}
+                  className="w-full border border-[#22362A] rounded-lg px-3.5 py-2.5 text-sm placeholder-[#4A5D51] focus:outline-none focus:ring-2 focus:ring-[#3DDC84] focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-[#8AA396] text-xs font-medium mb-1.5">Bank name</label>
+                <input
+                  type="text"
+                  value={bankName}
+                  onChange={(e) => setBankName(e.target.value)}
+                  placeholder="Access Bank"
+                  style={{ color: "#FFFFFF", backgroundColor: "#0F1A14" }}
+                  className="w-full border border-[#22362A] rounded-lg px-3.5 py-2.5 text-sm placeholder-[#4A5D51] focus:outline-none focus:ring-2 focus:ring-[#3DDC84] focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-[#8AA396] text-xs font-medium mb-1.5">Account number</label>
+                <input
+                  type="text"
+                  value={bankAccountNumber}
+                  onChange={(e) => setBankAccountNumber(e.target.value)}
+                  placeholder="0123456789"
+                  style={{ color: "#FFFFFF", backgroundColor: "#0F1A14" }}
+                  className="w-full border border-[#22362A] rounded-lg px-3.5 py-2.5 text-sm placeholder-[#4A5D51] focus:outline-none focus:ring-2 focus:ring-[#3DDC84] focus:border-transparent"
+                />
+              </div>
+            </div>
+          </div>
+
           {error && (
             <p className="text-[#FF6B6B] text-xs bg-[#2A1616] border border-[#4A2323] rounded-lg px-3 py-2">
               {error}
@@ -228,6 +284,29 @@ export default function StoreSetup({ user, onStoreCreated }) {
           </button>
         </div>
       </div>
+
+      {showBankInfo && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-6">
+          <div className="bg-[#16241C] w-full max-w-sm rounded-2xl border border-[#22362A] p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-white font-semibold text-base">About payment details</h2>
+              <button type="button" onClick={() => setShowBankInfo(false)}>
+                <X size={20} className="text-[#8AA396]" />
+              </button>
+            </div>
+            <p className="text-[#8AA396] text-sm leading-relaxed">
+              This bank account is for your customers to pay you directly. Shopvora does not collect, hold, or forward any payment — money goes straight from the buyer to your account via WhatsApp.
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowBankInfo(false)}
+              className="w-full mt-4 bg-[#3DDC84] text-[#0F1A14] font-semibold text-sm rounded-lg py-2.5"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
     }
