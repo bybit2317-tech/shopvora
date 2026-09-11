@@ -294,10 +294,22 @@ export default function StorePage({ slug }) {
       (item) => `${item.qty}x ${item.name} - ₦${(item.qty * item.price).toLocaleString()}`
     );
 
-    const message =
+    let message =
       `Hi, I'd like to order:\n\n` +
       lines.join("\n") +
-      `\n\nTotal: ₦${cartTotal.toLocaleString()}` +
+      `\n\nTotal: ₦${cartTotal.toLocaleString()}`;
+
+    if (store.bank_account_name && store.bank_name && store.bank_account_number) {
+      message +=
+        `\n\nPayment:\n` +
+        `Account Name: ${store.bank_account_name}\n` +
+        `Bank: ${store.bank_name}\n` +
+        `Account Number: ${store.bank_account_number}\n\n` +
+        `📸 Please send a screenshot of your payment here after paying.`;
+    }
+
+    message +=
+      `\n\n📍 My delivery address:\n(Please type your address here before sending)` +
       `\n\n(via Shopvora - ${store.store_name})`;
 
     const cleanNumber = store.whatsapp_number.replace(/[^0-9]/g, "");
