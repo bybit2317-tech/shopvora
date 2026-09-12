@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { Store, ArrowRight, Loader2, CheckCircle2, Upload, Package, Copy, Check, X, Pencil, Trash2, Star, Menu, LogOut, MessageCircle, Settings } from "lucide-react";
+import { Store, ArrowRight, Loader2, CheckCircle2, Upload, Package, Copy, Check, X, Pencil, Trash2, Star, Menu, LogOut, MessageCircle, Settings, Crown, CreditCard } from "lucide-react";
 import { supabase } from "../supabaseClient";
 
 export default function ProductUpload({ user, onEditStore }) {
   const [store, setStore] = useState(null);
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
+  const [plans, setPlans] = useState([]);
 
   const [editingId, setEditingId] = useState(null);
   const [name, setName] = useState("");
@@ -25,9 +26,13 @@ export default function ProductUpload({ user, onEditStore }) {
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [togglingId, setTogglingId] = useState(null);
   const [showMenu, setShowMenu] = useState(false);
+  const [showUpgrade, setShowUpgrade] = useState(false);
+  const [payingPlanId, setPayingPlanId] = useState(null);
+  const [upgradeError, setUpgradeError] = useState("");
 
   const MAX_PHOTOS = 5;
   const OWNER_WHATSAPP = "2349130649587";
+  const EDGE_FUNCTION_URL = "https://swkxrpzpuuifcxqlntvf.supabase.co/functions/v1/initialize-payment";
 
   useEffect(() => {
     loadData();
@@ -44,6 +49,9 @@ export default function ProductUpload({ user, onEditStore }) {
 
     const { data: catData } = await supabase.from("categories").select("*").order("name");
     setCategories(catData || []);
+
+    const { data: planData } = await supabase.from("plans").select("*").order("price");
+    setPlans(planData || []);
 
     if (storeData) {
       const { data: prodData } = await supabase
@@ -120,6 +128,11 @@ export default function ProductUpload({ user, onEditStore }) {
     if (!name.trim()) return setError("Give your product a name.");
     if (!price || Number(price) <= 0) return setError("Add a valid price.");
     if (!store) return setError("Store not found. Try refreshing the page.");
+
+    const isPremium = store.subscription_status === "premium";
+    if (!editingId && !isPremium && products.length >= 5) {
+      return setError("You've reached your free limit of 5 products. Upgrade to Premium for unlimited products.");
+    }
 
     setLoading(true);
     try {
@@ -237,7 +250,36 @@ export default function ProductUpload({ user, onEditStore }) {
     window.open(`https://wa.me/${OWNER_WHATSAPP}`, "_blank");
   };
 
+  const handleUpgrade = async (plan) => {
+    setUpgradeError("");
+    setPayingPlanId(plan.id);
+    try {
+      const response = await fetch(EDGE_FUNCTION_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          storeId: store.id,
+          planId: plan.id,
+          email: user.email,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || data.error) {
+        throw new Error(data.error || "Something went wrong starting your payment.");
+      }
+
+      window.location.href = data.authorization_url;
+    } catch (err) {
+      setUpgradeError(err.message);
+    } finally {
+      setPayingPlanId(null);
+    }
+  };
+
   const totalPhotoCount = existingPhotoUrls.length + photoPreviews.length;
+  const isPremium = store?.subscription_status === "premium";
 
   if (loadingPage) {
     return (
@@ -271,7 +313,7 @@ export default function ProductUpload({ user, onEditStore }) {
       <button
         type="button"
         onClick={copyStoreLink}
-        className="w-full flex items-center justify-between gap-2 bg-[#16241C] border border-[#22362A] rounded-lg px-3.5 py-2.5 mb-6 hover:border-[#3DDC84] transition-colors"
+        className="w-full flex items-center justify-between gap-2 bg-[#16241C] border border-[#22362A] rounded-lg px-3.5 py-2.5 mb-4 hover:border-[#3DDC84] transition-colors"
       >
         <span className="text-[#8AA396] text-xs truncate">
           shopvora-store.netlify.app/{store?.store_slug}
@@ -288,6 +330,28 @@ export default function ProductUpload({ user, onEditStore }) {
           )}
         </span>
       </button>
+
+      <div className={`rounded-xl px-3.5 py-3 mb-6 flex items-center justify-between ${
+        isPremium ? "bg-[#1B3324] border border-[#3DDC84]" : "bg-[#16241C] border border-[#22362A]"
+      }`}>
+        <div className="flex items-center gap-2">
+          {isPremium && <Crown size={15} className="text-[#3DDC84]" />}
+          <div>
+            <p className={`text-xs font-medium ${isPremium ? "text-[#3DDC84]" : "text-[#8AA396]"}`}>
+              {isPremium ? "Premium plan" : `Free plan · ${products.length}/5 products`}
+            </p>
+          </div>
+        </div>
+        {!isPremium && (
+          <button
+            type="button"
+            onClick={() => setShowUpgrade(true)}
+            className="text-[10px] font-semibold bg-[#3DDC84] text-[#0F1A14] px-2.5 py-1.5 rounded-md"
+          >
+            Upgrade
+          </button>
+        )}
+      </div>
 
       <div className="bg-[#16241C] rounded-2xl p-5 border border-[#22362A] shadow-2xl mb-6">
         <div className="flex items-center justify-between mb-4">
@@ -411,9 +475,18 @@ export default function ProductUpload({ user, onEditStore }) {
           </div>
 
           {error && (
-            <p className="text-[#FF6B6B] text-xs bg-[#2A1616] border border-[#4A2323] rounded-lg px-3 py-2">
+            <div className="text-[#FF6B6B] text-xs bg-[#2A1616] border border-[#4A2323] rounded-lg px-3 py-2">
               {error}
-            </p>
+              {error.includes("Upgrade") && (
+                <button
+                  type="button"
+                  onClick={() => setShowUpgrade(true)}
+                  className="block mt-1.5 text-[#3DDC84] font-medium underline"
+                >
+                  See Premium plans
+                </button>
+              )}
+            </div>
           )}
 
           {success && (
@@ -541,6 +614,18 @@ export default function ProductUpload({ user, onEditStore }) {
                 type="button"
                 onClick={() => {
                   setShowMenu(false);
+                  setShowUpgrade(true);
+                }}
+                className="w-full flex items-center gap-2.5 text-left text-[#8AA396] text-sm px-3 py-2.5 rounded-lg hover:bg-[#0F1A14]"
+              >
+                <Crown size={16} />
+                {isPremium ? "Manage Premium" : "Upgrade to Premium"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMenu(false);
                   if (onEditStore) onEditStore();
                 }}
                 className="w-full flex items-center gap-2.5 text-left text-[#8AA396] text-sm px-3 py-2.5 rounded-lg hover:bg-[#0F1A14]"
@@ -566,6 +651,58 @@ export default function ProductUpload({ user, onEditStore }) {
                 <LogOut size={16} />
                 Log out
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showUpgrade && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-6">
+          <div className="bg-[#16241C] w-full max-w-sm rounded-2xl border border-[#22362A] p-5">
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-white font-semibold text-base flex items-center gap-1.5">
+                <Crown size={16} className="text-[#3DDC84]" />
+                Upgrade to Premium
+              </h2>
+              <button type="button" onClick={() => setShowUpgrade(false)}>
+                <X size={20} className="text-[#8AA396]" />
+              </button>
+            </div>
+            <p className="text-[#8AA396] text-xs mb-4">
+              Unlimited products, featured badge, and more.
+            </p>
+
+            {upgradeError && (
+              <p className="text-[#FF6B6B] text-xs bg-[#2A1616] border border-[#4A2323] rounded-lg px-3 py-2 mb-3">
+                {upgradeError}
+              </p>
+            )}
+
+            <div className="space-y-2">
+              {plans.map((plan) => (
+                <button
+                  key={plan.id}
+                  type="button"
+                  onClick={() => handleUpgrade(plan)}
+                  disabled={payingPlanId === plan.id}
+                  className="w-full flex items-center justify-between bg-[#0F1A14] border border-[#22362A] rounded-lg px-4 py-3 hover:border-[#3DDC84] transition-colors disabled:opacity-60"
+                >
+                  <div className="text-left">
+                    <p className="text-white text-sm font-medium">{plan.name}</p>
+                    <p className="text-[#4A5D51] text-xs">{plan.duration_days} days</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[#3DDC84] text-sm font-semibold">
+                      ₦{Number(plan.price).toLocaleString()}
+                    </span>
+                    {payingPlanId === plan.id ? (
+                      <Loader2 size={14} className="animate-spin text-[#8AA396]" />
+                    ) : (
+                      <CreditCard size={14} className="text-[#8AA396]" />
+                    )}
+                  </div>
+                </button>
+              ))}
             </div>
           </div>
         </div>
