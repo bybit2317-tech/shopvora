@@ -264,10 +264,16 @@ export default function ProductUpload({ user, onEditStore }) {
         }),
       });
 
-      const data = await response.json();
+      const rawText = await response.text();
+      let data;
+      try {
+        data = JSON.parse(rawText);
+      } catch {
+        throw new Error(`Server returned: ${rawText.slice(0, 200)}`);
+      }
 
       if (!response.ok || data.error) {
-        throw new Error(data.error || "Something went wrong starting your payment.");
+        throw new Error(data.error || `Status ${response.status}: ${JSON.stringify(data)}`);
       }
 
       window.location.href = data.authorization_url;
@@ -673,7 +679,7 @@ export default function ProductUpload({ user, onEditStore }) {
             </p>
 
             {upgradeError && (
-              <p className="text-[#FF6B6B] text-xs bg-[#2A1616] border border-[#4A2323] rounded-lg px-3 py-2 mb-3">
+              <p className="text-[#FF6B6B] text-xs bg-[#2A1616] border border-[#4A2323] rounded-lg px-3 py-2 mb-3 break-words">
                 {upgradeError}
               </p>
             )}
