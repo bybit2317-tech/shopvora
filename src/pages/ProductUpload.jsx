@@ -57,7 +57,7 @@ const VERIFY_FUNCTION_URL = "https://swkxrpzpuuifcxqlntvf.supabase.co/functions/
       if (data.success) {
   await loadData();
   setPaymentFailedMsg("");
-} } else {
+} else {
   setPaymentFailedMsg(
     "Payment wasn't completed. No charge was made. If your card didn't work, try Bank Transfer or USSD instead — tap Upgrade to Premium again and choose a different payment option."
   );
