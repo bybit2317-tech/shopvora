@@ -381,7 +381,11 @@ setStore(storeData);
     {paymentFailedMsg}
   </div>
 )}
-
+{renewalWarning && (
+  <div className="mb-4 p-4 rounded-xl bg-amber-900/30 border border-amber-700 text-amber-200 text-sm">
+    {renewalWarning}
+  </div>
+)}
       <button
         type="button"
         onClick={copyStoreLink}
