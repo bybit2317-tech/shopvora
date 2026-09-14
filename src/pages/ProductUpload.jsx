@@ -71,7 +71,19 @@ const VERIFY_FUNCTION_URL = "https://swkxrpzpuuifcxqlntvf.supabase.co/functions/
       .select("*")
       .eq("user_id", user.id)
       .single();
-    setStore(storeData);
+    if (
+  storeData &&
+  storeData.subscription_status === "premium" &&
+  storeData.subscription_end_date &&
+  new Date(storeData.subscription_end_date) < new Date()
+) {
+  await supabase
+    .from("stores")
+    .update({ subscription_status: "free" })
+    .eq("id", storeData.id);
+  storeData.subscription_status = "free";
+}
+setStore(storeData);
 
     const { data: catData } = await supabase.from("categories").select("*").order("name");
     setCategories(catData || []);
