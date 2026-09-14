@@ -356,6 +356,13 @@ export default function StorePage({ slug }) {
 
   return (
     <div className="min-h-screen bg-[#0F1A14] px-6 py-8 font-sans pb-24">
+      {store.banner_url && (
+        <img
+          src={store.banner_url}
+          alt={`${store.store_name} banner`}
+          className="w-full h-36 object-cover rounded-xl mb-4 -mt-2"
+        />
+      )}
       <div className="flex items-center gap-3 mb-2">
         <div className="w-11 h-11 rounded-lg bg-[#3DDC84] flex items-center justify-center shrink-0">
           <Store size={20} className="text-[#0F1A14]" strokeWidth={2.5} />
