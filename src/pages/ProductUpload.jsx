@@ -29,6 +29,7 @@ export default function ProductUpload({ user, onEditStore }) {
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [payingPlanId, setPayingPlanId] = useState(null);
   const [upgradeError, setUpgradeError] = useState("");
+  const [paymentFailedMsg, setPaymentFailedMsg] = useState("");
 
   const MAX_PHOTOS = 5;
   const OWNER_WHATSAPP = "2349130649587";
@@ -52,8 +53,14 @@ const VERIFY_FUNCTION_URL = "https://swkxrpzpuuifcxqlntvf.supabase.co/functions/
       });
       const data = await response.json();
       if (data.success) {
-        await loadData();
+  await loadData();
+  setPaymentFailedMsg("");
+} } else {
+  setPaymentFailedMsg(
+    "Payment wasn't completed. No charge was made. If your card didn't work, try Bank Transfer or USSD instead — tap Upgrade to Premium again and choose a different payment option."
+  );
       }
+      
     } catch (err) {
       console.error("Verification failed:", err);
     } finally {
