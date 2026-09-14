@@ -360,6 +360,11 @@ setStore(storeData);
           <Menu size={18} className="text-[#8AA396]" />
         </button>
       </div>
+      {paymentFailedMsg && (
+  <div className="mb-4 p-4 rounded-xl bg-red-900/30 border border-red-700 text-red-200 text-sm">
+    {paymentFailedMsg}
+  </div>
+)}
 
       <button
         type="button"
