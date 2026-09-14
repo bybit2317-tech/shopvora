@@ -466,7 +466,7 @@ setStore(storeData);
 
       {isPremium && (
         <div className="bg-[#16241C] rounded-xl border border-[#22362A] p-3.5 mb-6">
-          <p className="text-[#8AA396] text-xs font-medium mb-2">Store banner</p>
+          <p className="text-[#8AA396] text-xs font-medium mb-2">Store banner (or CAC certificate)</p>
           {store?.banner_url && (
             <img
               src={store.banner_url}
@@ -478,8 +478,8 @@ setStore(storeData);
             {uploadingBanner ? (
               <Loader2 size={18} className="text-[#3DDC84] animate-spin" />
             ) : (
-              <span className="text-xs text-[#4A5D51]">
-                {store?.banner_url ? "Change banner" : "Tap to add a banner"}
+              <span className="text-xs text-[#4A5D51] text-center px-3">
+                {store?.banner_url ? "Change banner" : "Add a banner or your CAC certificate to build trust with buyers"}
               </span>
             )}
             <input
