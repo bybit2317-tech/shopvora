@@ -31,6 +31,7 @@ export default function ProductUpload({ user, onEditStore }) {
   const [upgradeError, setUpgradeError] = useState("");
   const [paymentFailedMsg, setPaymentFailedMsg] = useState("");
   const [renewalWarning, setRenewalWarning] = useState("");
+  const [uploadingBanner, setUploadingBanner] = useState(false);
 
   const MAX_PHOTOS = 5;
   const OWNER_WHATSAPP = "2349130649587";
@@ -147,6 +148,40 @@ setStore(storeData);
 
   const removeExistingPhoto = (index) => {
     setExistingPhotoUrls(existingPhotoUrls.filter((_, i) => i !== index));
+  };
+
+  const handleBannerChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingBanner(true);
+    setError("");
+    try {
+      const fileExt = file.name.split(".").pop();
+      const filePath = `banners/${store.id}-${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("product-images")
+        .upload(filePath, file);
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from("product-images")
+        .getPublicUrl(filePath);
+
+      const { error: updateError } = await supabase
+        .from("stores")
+        .update({ banner_url: urlData.publicUrl })
+        .eq("id", store.id);
+      if (updateError) throw updateError;
+
+      setStore((prev) => ({ ...prev, banner_url: urlData.publicUrl }));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUploadingBanner(false);
+      e.target.value = "";
+    }
   };
 
   const resetForm = () => {
@@ -428,6 +463,35 @@ setStore(storeData);
           </button>
         )}
       </div>
+
+      {isPremium && (
+        <div className="bg-[#16241C] rounded-xl border border-[#22362A] p-3.5 mb-6">
+          <p className="text-[#8AA396] text-xs font-medium mb-2">Store banner</p>
+          {store?.banner_url && (
+            <img
+              src={store.banner_url}
+              alt="Store banner"
+              className="w-full h-24 object-cover rounded-lg mb-2"
+            />
+          )}
+          <label className="flex items-center justify-center gap-2 border border-dashed border-[#3A4F42] rounded-lg h-16 cursor-pointer bg-[#0F1A14]">
+            {uploadingBanner ? (
+              <Loader2 size={18} className="text-[#3DDC84] animate-spin" />
+            ) : (
+              <span className="text-xs text-[#4A5D51]">
+                {store?.banner_url ? "Change banner" : "Tap to add a banner"}
+              </span>
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleBannerChange}
+              className="hidden"
+              disabled={uploadingBanner}
+            />
+          </label>
+        </div>
+      )}
 
       <div className="bg-[#16241C] rounded-2xl p-5 border border-[#22362A] shadow-2xl mb-6">
         <div className="flex items-center justify-between mb-4">
