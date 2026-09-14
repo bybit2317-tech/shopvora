@@ -30,6 +30,7 @@ export default function ProductUpload({ user, onEditStore }) {
   const [payingPlanId, setPayingPlanId] = useState(null);
   const [upgradeError, setUpgradeError] = useState("");
   const [paymentFailedMsg, setPaymentFailedMsg] = useState("");
+  const [renewalWarning, setRenewalWarning] = useState("");
 
   const MAX_PHOTOS = 5;
   const OWNER_WHATSAPP = "2349130649587";
@@ -78,17 +79,32 @@ const VERIFY_FUNCTION_URL = "https://swkxrpzpuuifcxqlntvf.supabase.co/functions/
       .select("*")
       .eq("user_id", user.id)
       .single();
+    
     if (
   storeData &&
   storeData.subscription_status === "premium" &&
-  storeData.subscription_end_date &&
-  new Date(storeData.subscription_end_date) < new Date()
+  storeData.subscription_end_date
 ) {
-  await supabase
-    .from("stores")
-    .update({ subscription_status: "free" })
-    .eq("id", storeData.id);
-  storeData.subscription_status = "free";
+  const endDate = new Date(storeData.subscription_end_date);
+  const now = new Date();
+  const gracePeriodEnd = new Date(endDate);
+  gracePeriodEnd.setDate(gracePeriodEnd.getDate() + 3);
+
+  if (now > gracePeriodEnd) {
+    await supabase
+      .from("stores")
+      .update({ subscription_status: "free" })
+      .eq("id", storeData.id);
+    storeData.subscription_status = "free";
+    setRenewalWarning("");
+  } else if (now > endDate) {
+    const daysLeft = Math.ceil((gracePeriodEnd - now) / (1000 * 60 * 60 * 24));
+    setRenewalWarning(
+      `Your Premium plan has expired. Renew within ${daysLeft} day${daysLeft === 1 ? "" : "s"} to keep your Premium perks.`
+    );
+  } else {
+    setRenewalWarning("");
+  }
 }
 setStore(storeData);
 
