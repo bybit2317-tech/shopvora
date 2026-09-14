@@ -33,10 +33,36 @@ export default function ProductUpload({ user, onEditStore }) {
   const MAX_PHOTOS = 5;
   const OWNER_WHATSAPP = "2349130649587";
   const EDGE_FUNCTION_URL = "https://swkxrpzpuuifcxqlntvf.supabase.co/functions/v1/initialize-payment";
-
+const VERIFY_FUNCTION_URL = "https://swkxrpzpuuifcxqlntvf.supabase.co/functions/v1/verify-payment";
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+  const params = new URLSearchParams(window.location.search);
+  const reference = params.get("reference") || params.get("trxref");
+  if (!reference) return;
+
+  const verify = async () => {
+    try {
+      const response = await fetch(VERIFY_FUNCTION_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reference }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        await loadData();
+      }
+    } catch (err) {
+      console.error("Verification failed:", err);
+    } finally {
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  };
+
+  verify();
+}, []);
 
   const loadData = async () => {
     setLoadingPage(true);
