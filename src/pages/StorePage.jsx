@@ -361,7 +361,14 @@ export default function StorePage({ slug }) {
           <Store size={20} className="text-[#0F1A14]" strokeWidth={2.5} />
         </div>
         <div className="flex-1">
-          <h1 className="text-white font-semibold text-lg leading-tight">{store.store_name}</h1>
+          <h1 className="text-white font-semibold text-lg leading-tight flex items-center gap-1.5">
+  {store.store_name}
+  {store.subscription_status === "premium" && (
+    <span className="inline-flex items-center gap-1 text-[10px] font-medium bg-amber-400/20 text-amber-300 px-2 py-0.5 rounded-full border border-amber-400/40">
+      👑 Premium Seller
+    </span>
+  )}
+</h1>
           {(store.city || store.state) && (
             <p className="text-[#4A5D51] text-xs">
               {[store.city, store.state].filter(Boolean).join(", ")}
