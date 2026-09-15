@@ -112,14 +112,22 @@ export default function LandingPage({ onGetStarted, onLogin }) {
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div className="bg-[#16241C] border border-[#22362A] rounded-lg overflow-hidden">
-                  <div className="w-full h-16 bg-gradient-to-br from-[#1B3324] to-[#22362A]" />
+                  <img
+                    src="https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=300&h=300&fit=crop"
+                    alt="Ankara Dress"
+                    className="w-full h-16 object-cover"
+                  />
                   <div className="p-2">
                     <p className="text-[9px] font-medium truncate">Ankara Dress</p>
                     <p className="text-[9px] text-[#3DDC84] font-semibold mt-0.5">₦18,000</p>
                   </div>
                 </div>
                 <div className="bg-[#16241C] border border-[#22362A] rounded-lg overflow-hidden">
-                  <div className="w-full h-16 bg-gradient-to-br from-[#1B3324] to-[#22362A]" />
+                  <img
+                    src="https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=300&h=300&fit=crop"
+                    alt="Beaded Bag"
+                    className="w-full h-16 object-cover"
+                  />
                   <div className="p-2">
                     <p className="text-[9px] font-medium truncate">Beaded Bag</p>
                     <p className="text-[9px] text-[#3DDC84] font-semibold mt-0.5">₦9,500</p>
