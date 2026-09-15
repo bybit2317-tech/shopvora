@@ -9,6 +9,7 @@ import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import TermsPage from "./pages/TermsPage";
 import EditStore from "./pages/EditStore";
+import InstallPrompt from "./pages/InstallPrompt";
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -92,10 +93,13 @@ export default function App() {
   if (!user) {
     if (showLanding) {
       return (
-        <LandingPage
-          onGetStarted={() => setShowLanding(false)}
-          onLogin={() => setShowLanding(false)}
-        />
+        <>
+          <LandingPage
+            onGetStarted={() => setShowLanding(false)}
+            onLogin={() => setShowLanding(false)}
+          />
+          <InstallPrompt />
+        </>
       );
     }
     return <AuthPage onLoggedIn={handleLoggedIn} />;
@@ -109,5 +113,10 @@ export default function App() {
     return <EditStore user={user} onBack={() => setShowEditStore(false)} />;
   }
 
-  return <ProductUpload user={user} onEditStore={() => setShowEditStore(true)} />;
+  return (
+    <>
+      <ProductUpload user={user} onEditStore={() => setShowEditStore(true)} />
+      <InstallPrompt />
+    </>
+  );
 }
