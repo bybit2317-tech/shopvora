@@ -184,6 +184,36 @@ setStore(storeData);
     }
   };
 
+  const handleRemoveBanner = async () => {
+    if (!store?.banner_url) return;
+    setUploadingBanner(true);
+    setError("");
+    try {
+      const { error: updateError } = await supabase
+        .from("stores")
+        .update({ banner_url: null })
+        .eq("id", store.id);
+      if (updateError) throw updateError;
+
+      setStore((prev) => ({ ...prev, banner_url: null }));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUploadingBanner(false);
+    }
+  };
+
+  const formatPriceDisplay = (value) => {
+    const digitsOnly = value.replace(/[^\d]/g, "");
+    if (!digitsOnly) return "";
+    return Number(digitsOnly).toLocaleString();
+  };
+
+  const handlePriceChange = (e) => {
+    const digitsOnly = e.target.value.replace(/[^\d]/g, "");
+    setPrice(digitsOnly);
+  };
+
   const resetForm = () => {
     setEditingId(null);
     setName("");
@@ -466,13 +496,23 @@ setStore(storeData);
 
       {isPremium && (
         <div className="bg-[#16241C] rounded-xl border border-[#22362A] p-3.5 mb-6">
-          <p className="text-[#8AA396] text-xs font-medium mb-2">Store banner (or CAC certificate)</p>
+          <p className="text-[#8AA396] text-xs font-medium mb-2">Store banner (or CAC certificate) — optional</p>
           {store?.banner_url && (
-            <img
-              src={store.banner_url}
-              alt="Store banner"
-              className="w-full h-24 object-cover rounded-lg mb-2"
-            />
+            <div className="relative mb-2">
+              <img
+                src={store.banner_url}
+                alt="Store banner"
+                className="w-full h-24 object-cover rounded-lg"
+              />
+              <button
+                type="button"
+                onClick={handleRemoveBanner}
+                disabled={uploadingBanner}
+                className="absolute top-1.5 right-1.5 bg-black/60 rounded-full p-1 disabled:opacity-60"
+              >
+                <X size={14} className="text-white" />
+              </button>
+            </div>
           )}
           <label className="flex items-center justify-center gap-2 border border-dashed border-[#3A4F42] rounded-lg h-16 cursor-pointer bg-[#0F1A14]">
             {uploadingBanner ? (
@@ -578,10 +618,11 @@ setStore(storeData);
           <div>
             <label className="block text-[#8AA396] text-xs font-medium mb-1.5">Price (₦)</label>
             <input
-              type="number"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              placeholder="25000"
+              type="text"
+              inputMode="numeric"
+              value={formatPriceDisplay(price)}
+              onChange={handlePriceChange}
+              placeholder="25,000"
               style={{ color: "#FFFFFF", backgroundColor: "#0F1A14" }}
               className="w-full border border-[#22362A] rounded-lg px-3.5 py-2.5 text-sm placeholder-[#4A5D51] focus:outline-none focus:ring-2 focus:ring-[#3DDC84] focus:border-transparent"
             />
