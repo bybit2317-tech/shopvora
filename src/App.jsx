@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "./supabaseClient";
+import LandingPage from "./pages/LandingPage";
 import AuthPage from "./pages/AuthPage";
 import StoreSetup from "./pages/StoreSetup";
 import ProductUpload from "./pages/ProductUpload";
@@ -18,6 +19,7 @@ export default function App() {
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
   const [isTermsRoute, setIsTermsRoute] = useState(false);
   const [showEditStore, setShowEditStore] = useState(false);
+  const [showLanding, setShowLanding] = useState(true);
 
   useEffect(() => {
     const path = window.location.pathname.replace(/^\/+|\/+$/g, "");
@@ -88,6 +90,14 @@ export default function App() {
   }
 
   if (!user) {
+    if (showLanding) {
+      return (
+        <LandingPage
+          onGetStarted={() => setShowLanding(false)}
+          onLogin={() => setShowLanding(false)}
+        />
+      );
+    }
     return <AuthPage onLoggedIn={handleLoggedIn} />;
   }
 
