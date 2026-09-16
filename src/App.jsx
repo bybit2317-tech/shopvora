@@ -10,6 +10,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import TermsPage from "./pages/TermsPage";
 import EditStore from "./pages/EditStore";
 import InstallPrompt from "./pages/InstallPrompt";
+import ResetPassword from "./pages/ResetPassword";
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -19,6 +20,7 @@ export default function App() {
   const [isAdminRoute, setIsAdminRoute] = useState(false);
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
   const [isTermsRoute, setIsTermsRoute] = useState(false);
+  const [isResetPasswordRoute, setIsResetPasswordRoute] = useState(false);
   const [showEditStore, setShowEditStore] = useState(false);
   const [showLanding, setShowLanding] = useState(true);
 
@@ -34,6 +36,12 @@ export default function App() {
 
     if (path === "terms") {
       setIsTermsRoute(true);
+      setCheckingSession(false);
+      return;
+    }
+
+    if (path === "reset-password") {
+      setIsResetPasswordRoute(true);
       setCheckingSession(false);
       return;
     }
@@ -77,6 +85,10 @@ export default function App() {
 
   if (isTermsRoute) {
     return <TermsPage />;
+  }
+
+  if (isResetPasswordRoute) {
+    return <ResetPassword />;
   }
 
   if (isAdminRoute) {
