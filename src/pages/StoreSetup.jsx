@@ -3,8 +3,12 @@ import { Store, ArrowRight, Loader2, CheckCircle2, Copy, Check, Info, X } from "
 import { supabase } from "../supabaseClient";
 
 const NIGERIAN_STATES = [
-  "Lagos", "Abuja (FCT)", "Rivers", "Kano", "Oyo", "Kaduna", "Ogun", "Enugu",
-  "Delta", "Anambra", "Edo", "Plateau", "Other",
+  "Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue",
+  "Borno", "Cross River", "Delta", "Ebonyi", "Edo", "Ekiti", "Enugu",
+  "Gombe", "Imo", "Jigawa", "Kaduna", "Kano", "Katsina", "Kebbi", "Kogi",
+  "Kwara", "Lagos", "Nasarawa", "Niger", "Ogun", "Ondo", "Osun", "Oyo",
+  "Plateau", "Rivers", "Sokoto", "Taraba", "Yobe", "Zamfara", "Abuja (FCT)",
+  "Other",
 ];
 
 function slugify(name) {
@@ -215,14 +219,16 @@ export default function StoreSetup({ user, onStoreCreated }) {
           </div>
 
           <div className="pt-2 border-t border-[#22362A]">
-            <div className="flex items-center gap-1.5 mb-3 mt-3">
-              <p className="text-[#8AA396] text-xs font-medium">Payment details (optional)</p>
+            <div className="flex items-center justify-between mb-3 mt-3">
+              <p className="text-[#8AA396] text-xs font-medium">
+                Payment details <span className="text-[#3DDC84]">(optional)</span>
+              </p>
               <button
                 type="button"
                 onClick={() => setShowBankInfo(true)}
-                className="text-[#4A5D51]"
+                className="text-[#3DDC84] text-xs font-medium underline"
               >
-                <Info size={13} />
+                Learn more
               </button>
             </div>
 
@@ -309,4 +315,4 @@ export default function StoreSetup({ user, onStoreCreated }) {
       )}
     </div>
   );
-    }
+}
