@@ -10,6 +10,7 @@ export default function AuthPage({ onLoggedIn }) {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
   const handleSubmit = async () => {
     setError("");
@@ -38,6 +39,26 @@ export default function AuthPage({ onLoggedIn }) {
     }
   };
 
+  const handleForgotPassword = async () => {
+    setError("");
+    if (!email) {
+      setError("Enter your email first.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: "https://shopvora-store.netlify.app/reset-password",
+      });
+      if (resetError) throw resetError;
+      setResetSent(true);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#0F1A14] flex flex-col items-center justify-center px-6 py-10 font-sans">
       <div className="flex items-center gap-2 mb-8">
@@ -48,7 +69,78 @@ export default function AuthPage({ onLoggedIn }) {
       </div>
 
       <div className="w-full max-w-sm bg-[#16241C] rounded-2xl p-6 border border-[#22362A] shadow-2xl">
-        {success ? (
+        {mode === "forgot" ? (
+          resetSent ? (
+            <div className="text-center py-6">
+              <CheckCircle2 size={40} className="text-[#3DDC84] mx-auto mb-4" />
+              <h2 className="text-white text-lg font-semibold mb-2">Check your email</h2>
+              <p className="text-[#8AA396] text-sm">
+                We've sent a password reset link to {email}. Tap the link to set a new password.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setMode("login");
+                  setResetSent(false);
+                  setError("");
+                }}
+                className="text-[#3DDC84] text-sm font-medium mt-5 hover:underline"
+              >
+                Back to log in
+              </button>
+            </div>
+          ) : (
+            <>
+              <h1 className="text-white text-xl font-semibold mb-1">Reset your password</h1>
+              <p className="text-[#8AA396] text-sm mb-6">
+                Enter your email and we'll send you a link to reset your password.
+              </p>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-[#8AA396] text-xs font-medium mb-1.5">Email</label>
+                  <input
+                    type="email"
+                    required
+                    autoComplete="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    style={{ color: "#FFFFFF", backgroundColor: "#0F1A14" }}
+                    className="w-full border border-[#22362A] rounded-lg px-3.5 py-2.5 text-sm placeholder-[#4A5D51] focus:outline-none focus:ring-2 focus:ring-[#3DDC84] focus:border-transparent"
+                  />
+                </div>
+
+                {error && (
+                  <p className="text-[#FF6B6B] text-xs bg-[#2A1616] border border-[#4A2323] rounded-lg px-3 py-2">
+                    {error}
+                  </p>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  disabled={loading}
+                  className="w-full bg-[#3DDC84] hover:bg-[#34C476] transition-colors text-[#0F1A14] font-semibold text-sm rounded-lg py-2.5 flex items-center justify-center gap-2 disabled:opacity-60"
+                >
+                  {loading ? <Loader2 size={16} className="animate-spin" /> : "Send reset link"}
+                </button>
+              </div>
+
+              <p className="text-center text-[#8AA396] text-xs mt-5">
+                <button
+                  onClick={() => {
+                    setMode("login");
+                    setError("");
+                  }}
+                  className="text-[#3DDC84] font-medium hover:underline"
+                >
+                  Back to log in
+                </button>
+              </p>
+            </>
+          )
+        ) : success ? (
           <div className="text-center py-6">
             <CheckCircle2 size={40} className="text-[#3DDC84] mx-auto mb-4" />
             <h2 className="text-white text-lg font-semibold mb-2">
@@ -96,6 +188,18 @@ export default function AuthPage({ onLoggedIn }) {
                   style={{ color: "#FFFFFF", backgroundColor: "#0F1A14" }}
                   className="w-full border border-[#22362A] rounded-lg px-3.5 py-2.5 text-sm placeholder-[#4A5D51] focus:outline-none focus:ring-2 focus:ring-[#3DDC84] focus:border-transparent"
                 />
+                {mode === "login" && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode("forgot");
+                      setError("");
+                    }}
+                    className="text-[#3DDC84] text-xs mt-1.5 hover:underline"
+                  >
+                    Forgot password?
+                  </button>
+                )}
               </div>
 
               {mode === "signup" && (
@@ -164,4 +268,4 @@ export default function AuthPage({ onLoggedIn }) {
       </p>
     </div>
   );
-               }
+}
