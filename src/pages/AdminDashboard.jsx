@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Store, Loader2, LogOut, Users, Ban, CheckCircle2, Flag, Tag, Plus, Trash2, Package, TrendingUp, CreditCard, Save } from "lucide-react";
+import { Store, Loader2, LogOut, Users, Ban, CheckCircle2, Flag, Tag, Plus, Trash2, Package, TrendingUp, CreditCard, Save, Crown } from "lucide-react";
 import { supabase } from "../supabaseClient";
 
 export default function AdminDashboard({ onLogout }) {
@@ -10,6 +10,7 @@ export default function AdminDashboard({ onLogout }) {
   const [editedPlans, setEditedPlans] = useState({});
   const [productCount, setProductCount] = useState(0);
   const [newSellersThisWeek, setNewSellersThisWeek] = useState(0);
+  const [sellerFilter, setSellerFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [togglingId, setTogglingId] = useState(null);
   const [activeTab, setActiveTab] = useState("sellers");
@@ -160,6 +161,15 @@ export default function AdminDashboard({ onLogout }) {
     onLogout();
   };
 
+  const premiumCount = stores.filter((s) => s.subscription_status === "premium").length;
+
+  const filteredStores =
+    sellerFilter === "premium"
+      ? stores.filter((s) => s.subscription_status === "premium")
+      : sellerFilter === "free"
+      ? stores.filter((s) => s.subscription_status !== "premium")
+      : stores;
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0F1A14] flex items-center justify-center">
@@ -207,7 +217,14 @@ export default function AdminDashboard({ onLogout }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 mb-6">
+      <div className="grid grid-cols-2 gap-3 mb-3">
+        <div className="bg-[#1B3324] border border-[#3DDC84] rounded-xl p-4 flex items-center gap-3">
+          <Crown size={20} className="text-[#3DDC84]" />
+          <div>
+            <p className="text-white font-semibold text-lg leading-tight">{premiumCount}</p>
+            <p className="text-[#3DDC84] text-xs">Premium sellers</p>
+          </div>
+        </div>
         <div className="bg-[#16241C] border border-[#22362A] rounded-xl p-4 flex items-center gap-3">
           <TrendingUp size={20} className="text-[#3DDC84]" />
           <div>
@@ -215,11 +232,21 @@ export default function AdminDashboard({ onLogout }) {
             <p className="text-[#8AA396] text-xs">New sellers (7d)</p>
           </div>
         </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 mb-6">
         <div className="bg-[#16241C] border border-[#22362A] rounded-xl p-4 flex items-center gap-3">
           <Flag size={20} className="text-[#FF6B6B]" />
           <div>
             <p className="text-white font-semibold text-lg leading-tight">{reports.length}</p>
             <p className="text-[#8AA396] text-xs">Reports</p>
+          </div>
+        </div>
+        <div className="bg-[#16241C] border border-[#22362A] rounded-xl p-4 flex items-center gap-3">
+          <Users size={20} className="text-[#8AA396]" />
+          <div>
+            <p className="text-white font-semibold text-lg leading-tight">{stores.length - premiumCount}</p>
+            <p className="text-[#8AA396] text-xs">Free sellers</p>
           </div>
         </div>
       </div>
@@ -273,15 +300,52 @@ export default function AdminDashboard({ onLogout }) {
 
       {activeTab === "sellers" && (
         <>
-          <h2 className="text-[#8AA396] text-xs font-medium uppercase tracking-wide mb-3">
-            All sellers
-          </h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-[#8AA396] text-xs font-medium uppercase tracking-wide">
+              {sellerFilter === "premium" ? "Premium sellers" : sellerFilter === "free" ? "Free sellers" : "All sellers"}
+            </h2>
+            <div className="flex gap-1.5">
+              <button
+                type="button"
+                onClick={() => setSellerFilter("all")}
+                className={`text-[10px] font-medium px-2 py-1 rounded-full border ${
+                  sellerFilter === "all"
+                    ? "bg-[#3DDC84] text-[#0F1A14] border-[#3DDC84]"
+                    : "bg-[#16241C] text-[#8AA396] border-[#22362A]"
+                }`}
+              >
+                All
+              </button>
+              <button
+                type="button"
+                onClick={() => setSellerFilter("premium")}
+                className={`text-[10px] font-medium px-2 py-1 rounded-full border ${
+                  sellerFilter === "premium"
+                    ? "bg-[#3DDC84] text-[#0F1A14] border-[#3DDC84]"
+                    : "bg-[#16241C] text-[#8AA396] border-[#22362A]"
+                }`}
+              >
+                Premium
+              </button>
+              <button
+                type="button"
+                onClick={() => setSellerFilter("free")}
+                className={`text-[10px] font-medium px-2 py-1 rounded-full border ${
+                  sellerFilter === "free"
+                    ? "bg-[#3DDC84] text-[#0F1A14] border-[#3DDC84]"
+                    : "bg-[#16241C] text-[#8AA396] border-[#22362A]"
+                }`}
+              >
+                Free
+              </button>
+            </div>
+          </div>
 
-          {stores.length === 0 ? (
-            <p className="text-[#4A5D51] text-sm text-center py-10">No sellers yet.</p>
+          {filteredStores.length === 0 ? (
+            <p className="text-[#4A5D51] text-sm text-center py-10">No sellers here.</p>
           ) : (
             <div className="space-y-2">
-              {stores.map((s) => (
+              {filteredStores.map((s) => (
                 <div
                   key={s.id}
                   className={`border rounded-xl px-4 py-3 ${
@@ -503,4 +567,4 @@ export default function AdminDashboard({ onLogout }) {
       )}
     </div>
   );
-      }
+}
