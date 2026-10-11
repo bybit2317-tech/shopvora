@@ -19,6 +19,8 @@ export default function AdminDashboard({ onLogout }) {
   const [deletingCategoryId, setDeletingCategoryId] = useState(null);
   const [savingPlanId, setSavingPlanId] = useState(null);
   const [savedPlanId, setSavedPlanId] = useState(null);
+  const [checkingExpired, setCheckingExpired] = useState(false);
+  const [expiredResult, setExpiredResult] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -156,6 +158,48 @@ export default function AdminDashboard({ onLogout }) {
     }
   };
 
+  const checkExpiredSubscriptions = async () => {
+    setCheckingExpired(true);
+    setExpiredResult(null);
+    try {
+      const now = new Date();
+      const premiumStores = stores.filter((s) => s.subscription_status === "premium");
+
+      const toDowngrade = premiumStores.filter((s) => {
+        if (!s.subscription_end_date) return false;
+        const endDate = new Date(s.subscription_end_date);
+        const gracePeriodEnd = new Date(endDate);
+        gracePeriodEnd.setDate(gracePeriodEnd.getDate() + 3);
+        return now > gracePeriodEnd;
+      });
+
+      if (toDowngrade.length > 0) {
+        const idsToDowngrade = toDowngrade.map((s) => s.id);
+        const { error } = await supabase
+          .from("stores")
+          .update({ subscription_status: "free" })
+          .in("id", idsToDowngrade);
+        if (error) throw error;
+
+        setStores((prev) =>
+          prev.map((s) =>
+            idsToDowngrade.includes(s.id) ? { ...s, subscription_status: "free" } : s
+          )
+        );
+      }
+
+      setExpiredResult({
+        count: toDowngrade.length,
+        names: toDowngrade.map((s) => s.store_name),
+      });
+    } catch (err) {
+      console.error(err);
+      setExpiredResult({ error: true });
+    } finally {
+      setCheckingExpired(false);
+    }
+  };
+
   const handleLogout = () => {
     sessionStorage.removeItem("shopvora_admin");
     onLogout();
@@ -250,6 +294,43 @@ export default function AdminDashboard({ onLogout }) {
           </div>
         </div>
       </div>
+
+      <button
+        type="button"
+        onClick={checkExpiredSubscriptions}
+        disabled={checkingExpired}
+        className="w-full flex items-center justify-center gap-2 bg-[#16241C] border border-[#22362A] text-[#8AA396] text-xs font-medium rounded-xl py-3 mb-3 disabled:opacity-60"
+      >
+        {checkingExpired ? (
+          <Loader2 size={14} className="animate-spin" />
+        ) : (
+          <Crown size={14} className="text-[#3DDC84]" />
+        )}
+        {checkingExpired ? "Checking..." : "Check for expired subscriptions"}
+      </button>
+
+      {expiredResult && (
+        <div
+          className={`rounded-xl px-4 py-3 mb-6 text-xs ${
+            expiredResult.error
+              ? "bg-[#2A1616] border border-[#4A2323] text-[#FF6B6B]"
+              : "bg-[#16241C] border border-[#22362A] text-[#8AA396]"
+          }`}
+        >
+          {expiredResult.error ? (
+            "Something went wrong checking subscriptions. Try again."
+          ) : expiredResult.count === 0 ? (
+            "No expired subscriptions found. Everyone's up to date."
+          ) : (
+            <>
+              <p className="text-white font-medium mb-1">
+                {expiredResult.count} seller{expiredResult.count > 1 ? "s" : ""} downgraded to Free:
+              </p>
+              <p>{expiredResult.names.join(", ")}</p>
+            </>
+          )}
+        </div>
+      )}
 
       <div className="flex gap-2 mb-5 overflow-x-auto">
         <button
