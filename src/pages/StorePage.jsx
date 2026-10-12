@@ -570,6 +570,19 @@ export default function StorePage({ slug }) {
         </button>
       </div>
 
+      <div className="mt-10 pt-6 border-t border-[#22362A] text-center">
+        <p className="text-[#4A5D51] text-xs mb-3">
+          Like this store? Create your own free online store with Shopvora.
+        </p>
+        <a
+          href="https://shopvora-store.netlify.app"
+          className="inline-flex items-center gap-1.5 bg-[#16241C] border border-[#22362A] text-[#3DDC84] text-xs font-medium px-4 py-2 rounded-full hover:border-[#3DDC84] transition-colors"
+        >
+          <Store size={13} />
+          Start your own store
+        </a>
+      </div>
+
       {cartCount > 0 && !showCart && (
         <button
           type="button"
