@@ -145,7 +145,19 @@ export default function StorePage({ slug }) {
       .order("featured", { ascending: false })
       .order("created_at", { ascending: false });
 
-    setProducts(prodData || []);
+    const allProducts = prodData || [];
+    const isPremium = storeData.subscription_status === "premium";
+
+    if (isPremium) {
+      setProducts(allProducts);
+    } else {
+      const oldestFirst = [...allProducts].sort(
+        (a, b) => new Date(a.created_at) - new Date(b.created_at)
+      );
+      const visibleIds = new Set(oldestFirst.slice(0, 5).map((p) => p.id));
+      const visibleProducts = allProducts.filter((p) => visibleIds.has(p.id));
+      setProducts(visibleProducts);
+    }
 
     const { data: catData } = await supabase.from("categories").select("*").order("name");
     setCategories(catData || []);
