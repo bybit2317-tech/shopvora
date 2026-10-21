@@ -413,6 +413,15 @@ setStore(storeData);
   const totalPhotoCount = existingPhotoUrls.length + photoPreviews.length;
   const isPremium = store?.subscription_status === "premium";
 
+  const visibleProductIds = new Set(
+    [...products]
+      .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+      .slice(0, 5)
+      .map((p) => p.id)
+  );
+  const isHiddenFromBuyers = (p) => !isPremium && !visibleProductIds.has(p.id);
+  const hiddenCount = isPremium ? 0 : Math.max(products.length - 5, 0);
+
   if (loadingPage) {
     return (
       <div className="min-h-screen bg-[#0F1A14] flex items-center justify-center">
@@ -697,6 +706,19 @@ setStore(storeData);
           Your products ({products.length})
         </h2>
 
+        {hiddenCount > 0 && (
+          <div className="mb-3 p-3 rounded-xl bg-amber-900/30 border border-amber-700 text-amber-200 text-xs leading-relaxed">
+            {hiddenCount} of your products {hiddenCount === 1 ? "is" : "are"} hidden from buyers because you're on the Free plan (limit: 5 visible products).{" "}
+            <button
+              type="button"
+              onClick={() => setShowUpgrade(true)}
+              className="text-[#3DDC84] font-semibold underline"
+            >
+              Upgrade to show them all
+            </button>
+          </div>
+        )}
+
         {products.length === 0 ? (
           <div className="text-center py-10 border border-dashed border-[#22362A] rounded-xl">
             <Package size={24} className="text-[#4A5D51] mx-auto mb-2" />
@@ -705,7 +727,17 @@ setStore(storeData);
         ) : (
           <div className="grid grid-cols-2 gap-3">
             {products.map((p) => (
-              <div key={p.id} className="bg-[#16241C] border border-[#22362A] rounded-xl overflow-hidden relative">
+              <div
+                key={p.id}
+                className={`bg-[#16241C] border rounded-xl overflow-hidden relative ${
+                  isHiddenFromBuyers(p) ? "border-amber-700 opacity-70" : "border-[#22362A]"
+                }`}
+              >
+                {isHiddenFromBuyers(p) && (
+                  <span className="absolute top-1.5 left-1.5 z-10 bg-amber-500 text-[#0F1A14] text-[9px] font-semibold px-1.5 py-0.5 rounded">
+                    Hidden · Upgrade to show
+                  </span>
+                )}
                 <button
                   type="button"
                   onClick={() => toggleFeatured(p)}
