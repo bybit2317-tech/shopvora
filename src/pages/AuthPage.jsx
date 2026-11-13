@@ -2,8 +2,8 @@ import { useState } from "react";
 import { Store, ArrowRight, Loader2, CheckCircle2 } from "lucide-react";
 import { supabase } from "../supabaseClient";
 
-export default function AuthPage({ onLoggedIn }) {
-  const [mode, setMode] = useState("signup");
+export default function AuthPage({ onLoggedIn, initialMode = "signup" }) {
+  const [mode, setMode] = useState(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -48,7 +48,7 @@ export default function AuthPage({ onLoggedIn }) {
     setLoading(true);
     try {
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: "https://shopvora-store.netlify.app/reset-password",
+        redirectTo: "https://shopvora-store.com/reset-password",
       });
       if (resetError) throw resetError;
       setResetSent(true);
