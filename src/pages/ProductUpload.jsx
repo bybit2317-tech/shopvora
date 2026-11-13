@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Store, ArrowRight, Loader2, CheckCircle2, Upload, Package, Copy, Check, X, Pencil, Trash2, Star, Menu, LogOut, MessageCircle, Settings, Crown, CreditCard } from "lucide-react";
+import { Store, ArrowRight, Loader2, CheckCircle2, Upload, Package, Copy, Check, X, Pencil, Trash2, Star, Menu, LogOut, MessageCircle, Settings, Crown, CreditCard, PlayCircle } from "lucide-react";
 import { supabase } from "../supabaseClient";
 
 export default function ProductUpload({ user, onEditStore }) {
@@ -242,7 +242,7 @@ setStore(storeData);
   };
 
   const copyStoreLink = () => {
-    const link = `https://shopvora-store.netlify.app/${store?.store_slug}`;
+    const link = `https://shopvora-store.com/${store?.store_slug}`;
     navigator.clipboard.writeText(link);
     setLinkCopied(true);
     setTimeout(() => setLinkCopied(false), 2000);
@@ -376,6 +376,10 @@ setStore(storeData);
     window.open(`https://wa.me/${OWNER_WHATSAPP}`, "_blank");
   };
 
+  const handleLearnHowItWorks = () => {
+    window.open("https://youtube.com/shorts/x05HKKApp2E", "_blank");
+  };
+
   const handleUpgrade = async (plan) => {
     setUpgradeError("");
     setPayingPlanId(plan.id);
@@ -439,7 +443,7 @@ setStore(storeData);
           </div>
           <div>
             <p className="text-white font-semibold text-sm leading-tight">{store?.store_name}</p>
-            <p className="text-[#4A5D51] text-xs">shopvora-store.netlify.app/{store?.store_slug}</p>
+            <p className="text-[#4A5D51] text-xs">shopvora-store.com/{store?.store_slug}</p>
           </div>
         </div>
         <button
@@ -466,7 +470,7 @@ setStore(storeData);
         className="w-full flex items-center justify-between gap-2 bg-[#16241C] border border-[#22362A] rounded-lg px-3.5 py-2.5 mb-4 hover:border-[#3DDC84] transition-colors"
       >
         <span className="text-[#8AA396] text-xs truncate">
-          shopvora-store.netlify.app/{store?.store_slug}
+          shopvora-store.com/{store?.store_slug}
         </span>
         <span className="flex items-center gap-1 text-[#3DDC84] text-xs font-medium shrink-0">
           {linkCopied ? (
@@ -479,6 +483,15 @@ setStore(storeData);
             </>
           )}
         </span>
+      </button>
+
+      <button
+        type="button"
+        onClick={handleLearnHowItWorks}
+        className="w-full flex items-center justify-center gap-2 bg-[#3DDC84] hover:bg-[#34C476] transition-colors text-[#0F1A14] font-semibold text-sm rounded-lg py-2.5 mb-4"
+      >
+        <PlayCircle size={18} />
+        Learn how it works
       </button>
 
       <div className={`rounded-xl px-3.5 py-3 mb-6 flex items-center justify-between ${
