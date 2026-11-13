@@ -225,7 +225,7 @@ export default function StorePage({ slug }) {
   };
 
   const shareProduct = async (product) => {
-    const storeUrl = `https://shopvora-store.netlify.app/${slug}`;
+    const storeUrl = `https://shopvora-store.com/${slug}`;
     const message = `Check out ${product.name} - ₦${Number(product.price).toLocaleString()} on ${store.store_name}\n${storeUrl}`;
 
     if (navigator.share) {
@@ -327,6 +327,13 @@ export default function StorePage({ slug }) {
     const cleanNumber = store.whatsapp_number.replace(/[^0-9]/g, "");
     const url = `https://wa.me/${cleanNumber}?text=${encodeURIComponent(message)}`;
     window.open(url, "_blank");
+  };
+
+  const chatWithSeller = () => {
+    if (!store.whatsapp_number) return;
+    const cleanNumber = store.whatsapp_number.replace(/[^0-9]/g, "");
+    const message = `Hi, I found your store "${store.store_name}" on Shopvora and I have a question.`;
+    window.open(`https://wa.me/${cleanNumber}?text=${encodeURIComponent(message)}`, "_blank");
   };
 
   const usedCategoryIds = [...new Set(products.map((p) => p.category_id).filter(Boolean))];
@@ -442,6 +449,17 @@ export default function StorePage({ slug }) {
 
       {store.description && (
         <p className="text-[#8AA396] text-sm mb-4 leading-relaxed">{store.description}</p>
+      )}
+
+      {store.whatsapp_number && (
+        <button
+          type="button"
+          onClick={chatWithSeller}
+          className="w-full flex items-center justify-center gap-2 bg-[#3DDC84] hover:bg-[#34C476] transition-colors text-[#0F1A14] font-semibold text-sm rounded-lg py-2.5 mb-4"
+        >
+          <MessageCircle size={18} />
+          Chat with seller on WhatsApp
+        </button>
       )}
 
       <div className="relative mb-4">
@@ -587,7 +605,7 @@ export default function StorePage({ slug }) {
           Like this store? Create your own free online store with Shopvora.
         </p>
         <a
-          href="https://shopvora-store.netlify.app"
+          href="https://shopvora-store.com"
           className="inline-flex items-center gap-1.5 bg-[#16241C] border border-[#22362A] text-[#3DDC84] text-xs font-medium px-4 py-2 rounded-full hover:border-[#3DDC84] transition-colors"
         >
           <Store size={13} />
