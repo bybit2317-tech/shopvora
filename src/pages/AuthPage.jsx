@@ -77,6 +77,9 @@ export default function AuthPage({ onLoggedIn, initialMode = "signup" }) {
               <p className="text-[#8AA396] text-sm">
                 We've sent a password reset link to {email}. Tap the link to set a new password.
               </p>
+              <p className="text-[#FF6B6B] text-xs font-bold mt-3">
+                Can't find it? Check your Spam or Promotions folder.
+              </p>
               <button
                 type="button"
                 onClick={() => {
@@ -146,20 +149,35 @@ export default function AuthPage({ onLoggedIn, initialMode = "signup" }) {
             <h2 className="text-white text-lg font-semibold mb-2">
               {mode === "signup" ? "Account created" : "Welcome back"}
             </h2>
-            <p className="text-[#8AA396] text-sm">
-              {mode === "signup"
-                ? "Check your email to confirm your account, then log in."
-                : "You're logged in. Next: set up your store."}
-            </p>
+            {mode === "signup" ? (
+              <div className="text-[#FF6B6B] text-sm bg-[#2A1616] border border-[#4A2323] rounded-lg px-3 py-3 text-left leading-relaxed">
+                <p className="font-bold mb-1">Important: verify your email to continue.</p>
+                <p>
+                  We sent a confirmation link to your email. If you don't see it in your inbox,
+                  <span className="font-bold"> check your Spam or Promotions folder</span>. Open the email,
+                  tap the link, then come back and log in.
+                </p>
+              </div>
+            ) : (
+              <p className="text-[#8AA396] text-sm">You're logged in. Next: set up your store.</p>
+            )}
           </div>
         ) : (
           <>
             <h1 className="text-white text-xl font-semibold mb-1">
               {mode === "signup" ? "Create your seller account" : "Log in to your store"}
             </h1>
-            <p className="text-[#8AA396] text-sm mb-6">
+            <p className="text-[#8AA396] text-sm mb-4">
               {mode === "signup" ? "Start selling in minutes. It's free." : "Enter your details to continue."}
             </p>
+
+            {mode === "signup" && (
+              <div className="text-[#FF6B6B] text-xs bg-[#2A1616] border border-[#4A2323] rounded-lg px-3 py-2.5 mb-5 leading-relaxed">
+                <span className="font-bold">Important:</span> after you sign up, we'll email you a link to
+                verify your account. If you don't see it in your inbox,
+                <span className="font-bold"> check your Spam or Promotions folder</span>.
+              </div>
+            )}
 
             <div className="space-y-4">
               <div>
